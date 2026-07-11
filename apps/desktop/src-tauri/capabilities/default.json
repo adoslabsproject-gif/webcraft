@@ -1,0 +1,207 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "WebCraft renderer capabilities — IDE-grade unrestricted filesystem + shell access for desktop developer use.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "dialog:default",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "store:default",
+    "http:default",
+    {
+      "identifier": "http:allow-fetch",
+      "allow": [
+        { "url": "https://nothumanallowed.com/*" },
+        { "url": "https://api.anthropic.com/*" },
+        { "url": "https://api.openai.com/*" },
+        { "url": "https://openrouter.ai/*" },
+        { "url": "http://127.0.0.1:*/*" },
+        { "url": "http://localhost:*/*" }
+      ]
+    },
+    "fs:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME" },
+        { "path": "$HOME/**" },
+        { "path": "$HOME/**/*" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DOWNLOAD/**" },
+        { "path": "$TEMP/**" },
+        { "path": "/**" },
+        { "path": "/Users/**" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**" },
+        { "path": "/private/**" },
+        { "path": "/opt/**" },
+        { "path": "/usr/**" },
+        { "path": "/Volumes/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**/*" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**/*" },
+        { "path": "/private/**/*" },
+        { "path": "/opt/**/*" },
+        { "path": "/usr/**/*" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**/*" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**/*" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-dir",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME" },
+        { "path": "$HOME/**" },
+        { "path": "/Users/**" },
+        { "path": "/tmp/**" },
+        { "path": "/private/**" },
+        { "path": "/opt/**" },
+        { "path": "/usr/**" },
+        { "path": "/Volumes/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-stat",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**/*" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**/*" },
+        { "path": "/private/**/*" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**" },
+        { "path": "/Users/**" },
+        { "path": "/tmp/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**/*" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**/*" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-rename",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**/*" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**/*" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        { "path": "**" },
+        { "path": "$HOME/**/*" },
+        { "path": "/Users/**/*" },
+        { "path": "/tmp/**/*" }
+      ]
+    },
+    "shell:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        { "name": "sh", "cmd": "sh", "args": true },
+        { "name": "bash", "cmd": "bash", "args": true },
+        { "name": "zsh", "cmd": "zsh", "args": true },
+        { "name": "ls", "cmd": "ls", "args": true },
+        { "name": "lsof", "cmd": "lsof", "args": true },
+        { "name": "ps", "cmd": "ps", "args": true },
+        { "name": "kill", "cmd": "kill", "args": true },
+        { "name": "git", "cmd": "git", "args": true },
+        { "name": "rg", "cmd": "rg", "args": true },
+        { "name": "fd", "cmd": "fd", "args": true },
+        { "name": "jq", "cmd": "jq", "args": true },
+        { "name": "curl", "cmd": "curl", "args": true },
+        { "name": "wget", "cmd": "wget", "args": true },
+        { "name": "make", "cmd": "make", "args": true },
+        { "name": "cmake", "cmd": "cmake", "args": true },
+        { "name": "ninja", "cmd": "ninja", "args": true },
+        { "name": "node", "cmd": "node", "args": true },
+        { "name": "npm", "cmd": "npm", "args": true },
+        { "name": "npx", "cmd": "npx", "args": true },
+        { "name": "pnpm", "cmd": "pnpm", "args": true },
+        { "name": "yarn", "cmd": "yarn", "args": true },
+        { "name": "bun", "cmd": "bun", "args": true },
+        { "name": "bunx", "cmd": "bunx", "args": true },
+        { "name": "deno", "cmd": "deno", "args": true },
+        { "name": "tsc", "cmd": "tsc", "args": true },
+        { "name": "tsx", "cmd": "tsx", "args": true },
+        { "name": "python", "cmd": "python", "args": true },
+        { "name": "python3", "cmd": "python3", "args": true },
+        { "name": "pip", "cmd": "pip", "args": true },
+        { "name": "pip3", "cmd": "pip3", "args": true },
+        { "name": "pipx", "cmd": "pipx", "args": true },
+        { "name": "poetry", "cmd": "poetry", "args": true },
+        { "name": "pdm", "cmd": "pdm", "args": true },
+        { "name": "pytest", "cmd": "pytest", "args": true },
+        { "name": "uv", "cmd": "uv", "args": true },
+        { "name": "ruff", "cmd": "ruff", "args": true },
+        { "name": "mypy", "cmd": "mypy", "args": true },
+        { "name": "black", "cmd": "black", "args": true },
+        { "name": "uvicorn", "cmd": "uvicorn", "args": true },
+        { "name": "php", "cmd": "php", "args": true },
+        { "name": "composer", "cmd": "composer", "args": true },
+        { "name": "ruby", "cmd": "ruby", "args": true },
+        { "name": "bundle", "cmd": "bundle", "args": true },
+        { "name": "rake", "cmd": "rake", "args": true },
+        { "name": "go", "cmd": "go", "args": true },
+        { "name": "gofmt", "cmd": "gofmt", "args": true },
+        { "name": "cargo", "cmd": "cargo", "args": true },
+        { "name": "rustc", "cmd": "rustc", "args": true },
+        { "name": "rustup", "cmd": "rustup", "args": true },
+        { "name": "dotnet", "cmd": "dotnet", "args": true },
+        { "name": "msbuild", "cmd": "msbuild", "args": true },
+        { "name": "java", "cmd": "java", "args": true },
+        { "name": "javac", "cmd": "javac", "args": true },
+        { "name": "mvn", "cmd": "mvn", "args": true },
+        { "name": "gradle", "cmd": "gradle", "args": true },
+        { "name": "kotlinc", "cmd": "kotlinc", "args": true },
+        { "name": "kotlin", "cmd": "kotlin", "args": true },
+        { "name": "swift", "cmd": "swift", "args": true },
+        { "name": "swiftc", "cmd": "swiftc", "args": true },
+        { "name": "xcodebuild", "cmd": "xcodebuild", "args": true },
+        { "name": "gcc", "cmd": "gcc", "args": true },
+        { "name": "g++", "cmd": "g++", "args": true },
+        { "name": "clang", "cmd": "clang", "args": true },
+        { "name": "clang++", "cmd": "clang++", "args": true },
+        { "name": "docker", "cmd": "docker", "args": true },
+        { "name": "podman", "cmd": "podman", "args": true },
+        { "name": "kubectl", "cmd": "kubectl", "args": true },
+        { "name": "helm", "cmd": "helm", "args": true },
+        { "name": "terraform", "cmd": "terraform", "args": true }
+      ]
+    },
+    "shell:allow-spawn",
+    "shell:allow-kill",
+    "shell:allow-stdin-write"
+  ]
+}

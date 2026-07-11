@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+.nx/cache
+.nx/workspace-data
+
+# Tauri / Rust
+target/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+
+# Bundled runtime binaries (downloaded on demand, never commit)
+resources/php-portable/
+resources/python-portable/
+resources/postgres-portable/
+resources/mysql-portable/
+
+# Local config & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE / OS
+.DS_Store
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Vite dev cache
+.vite/
+
+# Tauri build outputs
+apps/desktop/src-tauri/Cargo.lock

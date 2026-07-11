@@ -1,0 +1,132 @@
+/*
+ * WebCraft entry stylesheet.
+ *
+ * 1. Load design tokens (CSS variables).
+ * 2. Import Tailwind 4.
+ * 3. Tell Tailwind 4 explicitly which workspace packages to scan — the
+ *    default scan only walks files near this entry, so without @source
+ *    declarations any class used in packages/* produces zero CSS.
+ * 4. Map design tokens to Tailwind's @theme so utilities like
+ *    `bg-surface` / `text-fg-muted` / `border-border` exist.
+ * 5. Base layer — body, scrollbar, focus ring.
+ */
+
+@import './tokens.css';
+@import 'tailwindcss';
+
+@source "../../../../packages/core/src/**/*.{ts,tsx}";
+@source "../../../../packages/design-system/src/**/*.{ts,tsx}";
+
+@theme {
+  /* Semantic colors — exposed as bg-surface, text-fg, etc. */
+  --color-surface: var(--color-bg);
+  --color-surface-subtle: var(--color-bg-subtle);
+  --color-surface-elevated: var(--color-bg-elevated);
+  --color-surface-hover: var(--color-bg-hover);
+  --color-surface-active: var(--color-bg-active);
+  --color-surface-overlay: var(--color-bg-overlay);
+
+  --color-fg: var(--color-fg);
+  --color-fg-muted: var(--color-fg-muted);
+  --color-fg-subtle: var(--color-fg-subtle);
+  --color-fg-dim: var(--color-fg-dim);
+
+  --color-border-default: var(--color-border);
+  --color-border-subtle: var(--color-border-subtle);
+  --color-border-strong: var(--color-border-strong);
+
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-muted: var(--color-accent-muted);
+
+  --color-success: var(--color-success);
+  --color-success-muted: var(--color-success-muted);
+  --color-warning: var(--color-warning);
+  --color-warning-muted: var(--color-warning-muted);
+  --color-danger: var(--color-danger);
+  --color-danger-muted: var(--color-danger-muted);
+  --color-info: var(--color-info);
+  --color-info-muted: var(--color-info-muted);
+
+  /* Extra dark shade between -900 and -950 used by chrome */
+  --color-neutral-925: oklch(0.155 0.005 285);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-default: var(--radius-md);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Streaming progress bar slide animation — Cursor-style live indicator
+   on the chat panel header while the model is generating. */
+@keyframes slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* Default UI chrome is non-selectable for a native feel, but anything
+   inside `.select-text` (Tailwind utility) opts back in — used for
+   problem messages, file paths, code snippets the user needs to copy. */
+button,
+[role='button'] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.select-text,
+.select-text * {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+}
+
+/* Custom scrollbars — thin, theme-aware */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--color-accent-muted);
+  color: var(--color-fg);
+}
+
+/* Monaco override — match the surface */
+.monaco-editor,
+.monaco-editor-background,
+.monaco-editor .margin {
+  background-color: var(--color-bg) !important;
+}

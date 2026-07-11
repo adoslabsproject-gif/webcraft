@@ -1,0 +1,123 @@
+/*
+ * WebCraft design tokens — the single source of truth for color, spacing,
+ * typography, radius, shadow. Components consume tokens via Tailwind's
+ * arbitrary value syntax (`bg-[var(--color-bg)]`) or via custom utilities
+ * registered in this file's `@layer utilities`.
+ *
+ * Pattern modeled on Linear/Vercel/Radix Themes: semantic color names
+ * (surface, foreground, accent, danger) instead of raw shades, so a future
+ * theme switch (`[data-theme="light"]`) only re-binds the variables and
+ * every component follows.
+ */
+
+:root,
+[data-theme='dark'] {
+  /* Surface layers — increasing elevation from bg → bg-elevated → bg-overlay */
+  --color-bg: oklch(0.145 0.005 285);
+  --color-bg-subtle: oklch(0.165 0.005 285);
+  --color-bg-elevated: oklch(0.185 0.005 285);
+  --color-bg-hover: oklch(0.215 0.006 285);
+  --color-bg-active: oklch(0.255 0.008 285);
+  --color-bg-overlay: oklch(0.115 0.005 285 / 0.85);
+
+  /* Text */
+  --color-fg: oklch(0.985 0 0);
+  --color-fg-muted: oklch(0.78 0.005 285);
+  --color-fg-subtle: oklch(0.62 0.008 285);
+  --color-fg-dim: oklch(0.46 0.01 285);
+
+  /* Borders */
+  --color-border: oklch(0.295 0.008 285);
+  --color-border-subtle: oklch(0.235 0.006 285);
+  --color-border-strong: oklch(0.395 0.012 285);
+
+  /* Brand */
+  --color-accent: oklch(0.66 0.18 270);
+  --color-accent-hover: oklch(0.72 0.19 270);
+  --color-accent-muted: oklch(0.66 0.18 270 / 0.18);
+
+  /* Semantic */
+  --color-success: oklch(0.74 0.16 152);
+  --color-success-muted: oklch(0.74 0.16 152 / 0.14);
+  --color-warning: oklch(0.79 0.16 78);
+  --color-warning-muted: oklch(0.79 0.16 78 / 0.14);
+  --color-danger: oklch(0.66 0.22 22);
+  --color-danger-muted: oklch(0.66 0.22 22 / 0.14);
+  --color-info: oklch(0.74 0.13 230);
+  --color-info-muted: oklch(0.74 0.13 230 / 0.14);
+
+  /* Spacing scale (8px grid + 4px sub-grid) */
+  --space-0: 0;
+  --space-1: 0.25rem; /* 4px  */
+  --space-2: 0.5rem;  /* 8px  */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.5rem;  /* 24px */
+  --space-6: 2rem;    /* 32px */
+  --space-8: 3rem;    /* 48px */
+
+  /* Radius */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Elevation (shadows) — subtle dark theme shadows */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-lg: 0 16px 48px rgb(0 0 0 / 0.55);
+  --shadow-focus: 0 0 0 2px var(--color-accent);
+
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+
+  --leading-tight: 1.25;
+  --leading-snug: 1.35;
+  --leading-normal: 1.5;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Layout */
+  --activity-bar-w: 48px;
+  --sidebar-w: 280px;
+  --titlebar-h: 32px;
+  --statusbar-h: 24px;
+  --tab-h: 32px;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-normal: 180ms;
+  --duration-slow: 280ms;
+}
+
+[data-theme='light'] {
+  --color-bg: oklch(0.99 0 0);
+  --color-bg-subtle: oklch(0.97 0.002 285);
+  --color-bg-elevated: oklch(0.95 0.003 285);
+  --color-bg-hover: oklch(0.92 0.004 285);
+  --color-bg-active: oklch(0.89 0.006 285);
+  --color-bg-overlay: oklch(0.99 0 0 / 0.85);
+
+  --color-fg: oklch(0.16 0.005 285);
+  --color-fg-muted: oklch(0.36 0.008 285);
+  --color-fg-subtle: oklch(0.52 0.01 285);
+  --color-fg-dim: oklch(0.66 0.012 285);
+
+  --color-border: oklch(0.86 0.005 285);
+  --color-border-subtle: oklch(0.92 0.004 285);
+  --color-border-strong: oklch(0.78 0.008 285);
+}

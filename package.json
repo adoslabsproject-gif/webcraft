@@ -1,0 +1,48 @@
+{
+  "name": "webcraft",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WebCraft — the most advanced AI IDE ever made. Tauri 2 + Node sidecar, multi-language LSP, embedded DBs (PGLite/SQLite/Mongo/MySQL/Redis/DuckDB), bundled dev-server runtimes (Node/PHP/Python/Deno/Bun/Ruby/Go). Claude Code with UI.",
+  "type": "module",
+  "license": "MIT",
+  "author": {
+    "name": "Nicola Cucurachi",
+    "email": "ados.labsproject@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/adoslabsproject-gif/webcraft.git"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "build": "nx run-many --target=build --all",
+    "dev": "nx run desktop:dev",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "nx run-many --target=typecheck --all",
+    "test": "nx run-many --target=test --all"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.15",
+    "nx": "22.7.3",
+    "typescript": "6.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.6",
+      "react-dom": "19.2.6",
+      "@types/react": "19.2.15",
+      "@types/react-dom": "19.2.3"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "react": "19",
+        "react-dom": "19"
+      }
+    }
+  },
+  "packageManager": "pnpm@9.15.0"
+}

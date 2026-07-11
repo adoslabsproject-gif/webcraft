@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- CSP is managed by Tauri via tauri.conf.json (single source of truth).
+         Do NOT add a <meta http-equiv="Content-Security-Policy"> here — the
+         browser takes the most restrictive policy from both and the meta
+         version would shadow / override the Tauri one (e.g. blocking WASM). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebCraft</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

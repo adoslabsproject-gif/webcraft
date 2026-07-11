@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WebCraft",
+  "version": "0.1.0",
+  "identifier": "com.webcraft.ide",
+  "build": {
+    "beforeDevCommand": "pnpm vite:dev",
+    "devUrl": "http://localhost:11420",
+    "beforeBuildCommand": "pnpm vite:build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "WebCraft",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "backgroundColor": "#0a0a0a"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data:; worker-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: http://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost ws://localhost:* http://localhost:* https://api.anthropic.com https://api.openai.com https://openrouter.ai https://nothumanallowed.com https://duckduckgo.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "msi", "nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "DeveloperTool",
+    "copyright": "© 2026 Nicola Cucurachi",
+    "shortDescription": "The most advanced AI IDE ever made",
+    "longDescription": "WebCraft is a desktop IDE built for the AI-native developer. From a single prompt, the agent builds entire projects across any language, runs them in bundled dev-servers, queries embedded databases, and shows every change in a live red/green diff stream."
+  }
+}
