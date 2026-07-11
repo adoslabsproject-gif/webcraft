@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" width="900" height="300" role="img" aria-label="WebCraft — desktop AI coding IDE">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="1" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.5" stop-color="#818cf8"/>
+      <stop offset="1" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.3" cy="0.2" r="0.9">
+      <stop offset="0" stop-color="#6366f1" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="clipTitle"><rect x="60" y="70" width="640" height="90"/></clipPath>
+    <style>
+      @keyframes sweep { 0% { transform: translateX(-260px); } 100% { transform: translateX(760px); } }
+      @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+      @keyframes pulse { 0%,100% { opacity: 0.25; } 50% { opacity: 0.55; } }
+      @keyframes rise  { 0% { opacity: 0; transform: translateY(6px); } 100% { opacity: 1; transform: translateY(0); } }
+      @keyframes scan  { 0% { transform: translateY(0); opacity:0; } 10%{opacity:.5;} 90%{opacity:.5;} 100% { transform: translateY(300px); opacity:0; } }
+      .shine { animation: sweep 3.2s ease-in-out infinite; }
+      .caret { animation: blink 1s steps(1) infinite; }
+      .glow  { animation: pulse 4s ease-in-out infinite; }
+      .scan  { animation: scan 6s linear infinite; }
+      .d1 { animation: rise .6s ease-out .2s both; }
+      .d2 { animation: rise .6s ease-out .45s both; }
+      .d3 { animation: rise .6s ease-out .7s both; }
+      text { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+      .mono { font-family: 'SF Mono', 'JetBrains Mono', Consolas, monospace; }
+    </style>
+  </defs>
+
+  <rect width="900" height="300" rx="18" fill="url(#bg)"/>
+  <rect width="900" height="300" rx="18" fill="url(#glow)" class="glow"/>
+  <rect class="scan" x="0" y="-4" width="900" height="2" fill="#22d3ee" opacity="0.5"/>
+
+  <!-- title + animated shine -->
+  <g clip-path="url(#clipTitle)">
+    <text x="60" y="138" font-size="76" font-weight="800" fill="url(#title)">WebCraft</text>
+    <rect class="shine" x="0" y="70" width="180" height="90" fill="url(#shine)" transform="skewX(-18)"/>
+  </g>
+
+  <!-- tagline + blinking caret -->
+  <text x="62" y="182" font-size="21" fill="#93a4c3" class="mono">desktop AI coding IDE<tspan class="caret" fill="#22d3ee" dx="4">▏</tspan></text>
+
+  <!-- diff hunk bars (nod to the live diff stream) -->
+  <g class="mono" font-size="13">
+    <g class="d1"><rect x="62" y="212" width="8" height="16" rx="2" fill="#2ea043"/><text x="80" y="224" fill="#3fb950">+ multi_edit · apply_patch</text></g>
+    <g class="d2"><rect x="62" y="234" width="8" height="16" rx="2" fill="#2ea043"/><text x="80" y="246" fill="#3fb950">+ goto_definition · semantic_search</text></g>
+    <g class="d3"><rect x="62" y="256" width="8" height="16" rx="2" fill="#f85149"/><text x="80" y="268" fill="#f85149">- no cloud lock-in</text></g>
+  </g>
+
+  <!-- right badge cluster -->
+  <g class="mono" font-size="12" fill="#7d8db1" text-anchor="end">
+    <text x="838" y="96">Tauri 2 · Rust core</text>
+    <text x="838" y="116">React 19 · Monaco</text>
+    <text x="838" y="136">LSP · RAG · DB Studio</text>
+    <text x="838" y="156">MIT · by Nicola Cucurachi</text>
+  </g>
+</svg>
