@@ -44,7 +44,7 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
   const closeEditorTab = useAppStore((s) => s.closeEditorTab);
   const openChatTab = useAppStore((s) => s.openChatTab);
 
-  const ready = activeProvider === 'nha' || Boolean(apiKey);
+  const ready = Boolean(apiKey);
   const { messages, streaming, error, pendingText, status, send, stop } = useChat();
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
           AI Chat
           {!compact ? (
             <span className="rounded bg-indigo-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-indigo-300">
-              {activeProvider === 'nha' ? 'Liara · free tier' : activeProvider}
+              {activeProvider}
             </span>
           ) : null}
           <span className="font-mono text-[10px] text-[var(--color-fg-subtle)]">
@@ -118,8 +118,8 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
       {loaded && !ready ? (
         <div className="flex items-center gap-2 border-b border-[var(--color-warning)]/30 bg-[var(--color-warning-muted)] px-4 py-2 text-xs text-[var(--color-warning)]">
           <AlertCircle className="h-3.5 w-3.5" />
-          No API key for <strong>{activeProvider}</strong>. Open Settings to add one, or switch
-          back to Liara (free, no key needed).
+          No API key for <strong>{activeProvider}</strong>. Open Settings and add one to start
+          chatting.
         </div>
       ) : null}
 
@@ -170,7 +170,6 @@ function EmptyChatHero({ compact = false }: { compact?: boolean }) {
       </h2>
       <p className={`${compact ? 'text-[11px]' : 'max-w-md text-sm'} text-[var(--color-fg-subtle)]`}>
         The model can read & write files in the open project.
-        {!compact ? ' Liara is free — no key needed.' : ''}
       </p>
       <div className={`mt-2 grid ${compact ? 'grid-cols-1' : 'grid-cols-2'} gap-2 text-left`}>
         {[

@@ -1,16 +1,17 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import type { ChatMessage, ContentBlock, ToolDefinition } from './types';
 
-/// NHA Free (Liara) — free LLM tier hosted at nothumanallowed.com.
-/// Backed by Qwen3 32B + Liara LoRA. No API key required.
+/// Generic OpenAI-compatible streaming client — one implementation for every
+/// provider that speaks the `chat/completions` wire format with SSE streaming
+/// and function calling: OpenAI, OpenRouter, DeepSeek, Grok (x.ai), Gemini
+/// (via its OpenAI-compat endpoint).
 ///
-/// Qwen3 supports native OpenAI-format function calling. We bridge:
+/// Bridges:
 ///   Anthropic-shaped ToolDefinition  → OpenAI `tools` array
 ///   OpenAI delta.tool_calls (stream) → Anthropic-shaped ContentBlock[]
 ///
-/// Result: the chat loop in `use-chat.ts` treats Liara IDENTICALLY to Anthropic
-/// for tool dispatch — write_file / edit_file / run_command / etc. all work
-/// against the free tier with no API key.
+/// Result: the chat loop in `use-chat.ts` treats every provider identically —
+/// write_file / edit_file / run_command / etc. work across all of them.
 
 interface StreamCallbacks {
   onText: (delta: string) => void;
@@ -19,8 +20,6 @@ interface StreamCallbacks {
   onError: (err: Error) => void;
   onUsage?: (usage: { input: number; output: number }) => void;
 }
-
-const ENDPOINT = 'https://nothumanallowed.com/api/v1/liara/chat';
 
 /// Streaming tool-call accumulator. OpenAI streams a tool call across many
 /// `delta.tool_calls` events — first event carries id+name, subsequent ones
@@ -32,7 +31,19 @@ interface PendingCall {
   argsBuffer: string;
 }
 
-export class NhaProvider {
+export interface OpenAiCompatConfig {
+  /// Full chat-completions URL, e.g. https://api.deepseek.com/v1/chat/completions
+  endpoint: string;
+  apiKey: string;
+  /// Human label used in error messages ("DeepSeek HTTP 401: …").
+  label: string;
+  /// Extra request headers (e.g. OpenRouter's HTTP-Referer / X-Title).
+  extraHeaders?: Record<string, string>;
+}
+
+export class OpenAiCompatProvider {
+  constructor(private readonly config: OpenAiCompatConfig) {}
+
   async stream(opts: {
     model: string;
     system?: string;
@@ -43,9 +54,10 @@ export class NhaProvider {
     callbacks: StreamCallbacks;
   }): Promise<{ assistantBlocks: ContentBlock[]; stopReason: string }> {
     const { system, messages, maxTokens = 8192, callbacks, tools, signal } = opts;
+    const { endpoint, apiKey, label, extraHeaders } = this.config;
 
     const body: Record<string, unknown> = {
-      model: opts.model || '/opt/models/qwen3-32b',
+      model: opts.model,
       max_tokens: maxTokens,
       messages: [
         ...(system ? [{ role: 'system' as const, content: system }] : []),
@@ -61,9 +73,13 @@ export class NhaProvider {
 
     let res: Response;
     try {
-      res = await tauriFetch(ENDPOINT, {
+      res = await tauriFetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+          ...extraHeaders,
+        },
         body: JSON.stringify(body),
         ...(signal ? { signal } : {}),
       });
@@ -74,14 +90,14 @@ export class NhaProvider {
         callbacks.onError(aborted);
         throw aborted;
       }
-      const wrapped = new Error(`Network error reaching Liara: ${msg}`);
+      const wrapped = new Error(`Network error reaching ${label}: ${msg}`);
       callbacks.onError(wrapped);
       throw wrapped;
     }
 
     if (!res.ok || !res.body) {
       const errText = await res.text().catch(() => '');
-      const e = new Error(`Liara HTTP ${res.status}: ${errText.slice(0, 200)}`);
+      const e = new Error(`${label} HTTP ${res.status}: ${errText.slice(0, 200)}`);
       callbacks.onError(e);
       throw e;
     }
@@ -167,8 +183,8 @@ export class NhaProvider {
       throw e;
     }
 
-    // Build the final assistantBlocks. Strip <think>…</think> reasoning
-    // (Liara LoRA emits internal monologue we don't want surfaced).
+    // Strip <think>…</think> reasoning traces (DeepSeek-R1-style models emit
+    // internal monologue we don't want surfaced as the answer).
     const cleanText = collectedText.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
     const assistantBlocks: ContentBlock[] = [];
     if (cleanText) assistantBlocks.push({ type: 'text', text: cleanText });

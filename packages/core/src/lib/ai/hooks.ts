@@ -1,6 +1,7 @@
 import { Command } from '@tauri-apps/plugin-shell';
 import { homeDir } from '@tauri-apps/api/path';
 import { fileExists } from '../ipc/fs';
+import { shellEnv } from './shell-env';
 import type { ToolUseBlock } from './types';
 
 /// Tool hook system — same UX pattern as Claude Code: drop a shell script
@@ -62,7 +63,10 @@ export async function runPreHook(
     // does not expose stdin yet for execute()).
     const tmp = `/tmp/webcraft-hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
     await Command.create('sh', ['-c', `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`]).execute();
-    const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`]).execute();
+    // Hook scripts routinely call the user's toolchain (pnpm, biome, …) —
+    // give them the same resolved PATH as the agent tools.
+    const env = await shellEnv(projectRoot);
+    const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`], { env }).execute();
     await Command.create('rm', ['-f', tmp]).execute();
     if ((r.code ?? 0) === 0) return { allowed: true };
     const reason = (r.stderr || r.stdout || `pre-hook exited ${r.code}`).slice(0, 1000);
@@ -90,7 +94,8 @@ export async function runPostHook(
     });
     const tmp = `/tmp/webcraft-hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
     await Command.create('sh', ['-c', `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`]).execute();
-    const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`]).execute();
+    const env = await shellEnv(projectRoot);
+    const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`], { env }).execute();
     await Command.create('rm', ['-f', tmp]).execute();
     if ((r.code ?? 0) !== 0) {
       return { warning: (r.stderr || r.stdout || `post-hook exited ${r.code}`).slice(0, 500) };

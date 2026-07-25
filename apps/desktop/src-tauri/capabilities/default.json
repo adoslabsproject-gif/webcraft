@@ -14,10 +14,13 @@
     {
       "identifier": "http:allow-fetch",
       "allow": [
-        { "url": "https://nothumanallowed.com/*" },
         { "url": "https://api.anthropic.com/*" },
         { "url": "https://api.openai.com/*" },
         { "url": "https://openrouter.ai/*" },
+        { "url": "https://api.deepseek.com/*" },
+        { "url": "https://api.x.ai/*" },
+        { "url": "https://generativelanguage.googleapis.com/*" },
+        { "url": "https://duckduckgo.com/*" },
         { "url": "http://127.0.0.1:*/*" },
         { "url": "http://localhost:*/*" }
       ]

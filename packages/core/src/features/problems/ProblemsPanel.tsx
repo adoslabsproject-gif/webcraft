@@ -194,9 +194,7 @@ function ProblemRow({
   const [showHint, setShowHint] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [copied, setCopied] = useState(false);
-  const activeProvider = useSettingsStore((s) => s.activeProvider);
-  const hasKey = useSettingsStore((s) => Boolean(s.apiKeys[s.activeProvider]));
-  const aiReady = activeProvider === 'nha' || hasKey;
+  const aiReady = useSettingsStore((s) => Boolean(s.apiKeys[s.activeProvider]));
 
   const Icon =
     problem.severity === 'error'
@@ -220,10 +218,12 @@ function ProblemRow({
     setTimeout(() => setCopied(false), 1500);
   }
 
+  const setChatPrefill = useAppStore((s) => s.setChatPrefill);
+
   function askAi() {
-    onAskAi();
     const prompt = `I have a problem in my code:\n\nFile: ${problem.path}\nLine: ${problem.line}:${problem.column}\nSeverity: ${problem.severity}\nMessage: ${problem.message}\n\nExplain the cause and how to fix it.`;
-    window.dispatchEvent(new CustomEvent('webcraft:chat:prefill', { detail: prompt }));
+    setChatPrefill(prompt);
+    onAskAi();
   }
 
   return (

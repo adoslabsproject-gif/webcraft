@@ -23,7 +23,6 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { EditorActions } from '../features/editor/editor-controller';
 import {
-  type ActiveRunPlan,
   type RunChoice,
   isWebcraftSourceRoot,
   planActiveRun,

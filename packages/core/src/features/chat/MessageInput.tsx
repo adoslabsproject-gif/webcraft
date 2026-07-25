@@ -1,5 +1,6 @@
 import { ImageIcon, Mic, MicOff, Send, Square, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useAppStore } from '../../store/app-store';
 import { MentionMenu, type MentionTarget } from './MentionMenu';
 import { createDictation, isDictationSupported, type Dictation } from './voice-dictation';
 
@@ -67,6 +68,18 @@ export function MessageInput({
   useEffect(() => () => {
     dictationRef.current?.destroy();
   }, []);
+
+  // External prefill (Problems "Fix with AI", welcome-screen prompt cards).
+  // Store-based rather than a window event: the prefill is set BEFORE the
+  // chat tab mounts, so an event dispatched at that moment would be lost.
+  const chatPrefill = useAppStore((s) => s.chatPrefill);
+  const setChatPrefill = useAppStore((s) => s.setChatPrefill);
+  useEffect(() => {
+    if (chatPrefill === null) return;
+    setText(chatPrefill);
+    setChatPrefill(null);
+    textareaRef.current?.focus();
+  }, [chatPrefill, setChatPrefill]);
 
   // Detect @mention trigger: the token immediately before the caret starts
   // with @. When matched, we surface the MentionMenu and feed it the query

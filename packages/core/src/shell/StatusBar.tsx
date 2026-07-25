@@ -94,7 +94,7 @@ export function StatusBar() {
         ) : null}
         <span className="flex items-center gap-1" title={`AI provider · ${model}`}>
           <MessageSquare className="h-3 w-3" />
-          {activeProvider === 'nha' ? 'Liara' : activeProvider}
+          {activeProvider}
         </span>
       </div>
     </footer>

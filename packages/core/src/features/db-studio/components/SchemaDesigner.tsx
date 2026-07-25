@@ -16,8 +16,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Key, Loader2, Plus, Sparkles, Table2, X } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { AnthropicProvider } from '../../../lib/ai/anthropic-client';
-import { NhaProvider } from '../../../lib/ai/nha-client';
+import { createProvider } from '../../../lib/ai/router';
 import { useSettingsStore } from '../../../store/settings-store';
 import { MigrationPreviewModal } from './MigrationPreviewModal';
 
@@ -200,12 +199,7 @@ function SchemaDesignerInner({ onClose }: { onClose: () => void }) {
     onAiSuggest: async (id: string) => {
       const node = nodes.find((n) => n.id === id);
       if (!node) return;
-      const provider =
-        activeProvider === 'nha'
-          ? new NhaProvider()
-          : apiKeys.anthropic
-            ? new AnthropicProvider(apiKeys.anthropic)
-            : null;
+      const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
       if (!provider) return;
       let buf = '';
       await provider.stream({

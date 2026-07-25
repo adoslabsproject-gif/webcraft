@@ -68,7 +68,7 @@ export function registerGhostAutocomplete(): monaco.IDisposable {
         if (!state.enabled) return { items: [] };
         const settings = useSettingsStore.getState();
         if (!settings.loaded) return { items: [] };
-        if (settings.activeProvider !== 'nha' && !settings.apiKeys[settings.activeProvider]) {
+        if (!settings.apiKeys[settings.activeProvider]) {
           return { items: [] };
         }
 
@@ -166,7 +166,7 @@ export function registerGhostAutocomplete(): monaco.IDisposable {
           enableForwardStability: true,
         };
       },
-      freeInlineCompletions() {
+      disposeInlineCompletions() {
         /* no-op — items are plain text */
       },
     },

@@ -11,7 +11,7 @@ import { create } from 'zustand';
 /// keychain via @napi-rs/keyring — wired through the Node sidecar — and
 /// will replace this for `apiKeys` once the sidecar is online.
 
-export type Provider = 'anthropic' | 'openai' | 'openrouter' | 'nha';
+export type Provider = 'anthropic' | 'openai' | 'openrouter' | 'deepseek' | 'grok' | 'gemini';
 
 /// User-selectable response style — injected as a directive in the system
 /// prompt. Matches Claude Code CLI's `--output-style` flag.
@@ -33,8 +33,18 @@ const DEFAULT_MODELS: Record<Provider, string> = {
   anthropic: 'claude-opus-4-7',
   openai: 'gpt-5',
   openrouter: 'anthropic/claude-opus-4-7',
-  // Liara LoRA on Qwen3 32B — vLLM serves it at this absolute path.
-  nha: '/opt/models/qwen3-32b',
+  deepseek: 'deepseek-chat',
+  grok: 'grok-4',
+  gemini: 'gemini-2.5-pro',
+};
+
+const EMPTY_KEYS: Record<Provider, string> = {
+  anthropic: '',
+  openai: '',
+  openrouter: '',
+  deepseek: '',
+  grok: '',
+  gemini: '',
 };
 
 interface SettingsState {
@@ -65,10 +75,9 @@ function getStore(): Promise<Store> {
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
-  apiKeys: { anthropic: '', openai: '', openrouter: '', nha: '' },
-  // Default: NHA Free (Liara). No API key required — works immediately.
-  activeProvider: 'nha',
-  model: DEFAULT_MODELS.nha,
+  apiKeys: { ...EMPTY_KEYS },
+  activeProvider: 'anthropic',
+  model: DEFAULT_MODELS.anthropic,
   theme: 'dark',
   outputStyle: 'default',
   tokensInput: 0,
@@ -78,15 +87,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   async load() {
     if (get().loaded) return;
     const store = await getStore();
-    const apiKeys =
-      ((await store.get<Record<Provider, string>>('apiKeys')) ?? {
-        anthropic: '',
-        openai: '',
-        openrouter: '',
-        nha: '',
-      });
-    const activeProvider = (await store.get<Provider>('activeProvider')) ?? 'nha';
-    const model = (await store.get<string>('model')) ?? DEFAULT_MODELS[activeProvider];
+    // Merge persisted keys over the full provider set so settings saved by
+    // older versions (fewer providers, or the removed 'nha' tier) load
+    // cleanly: unknown stored keys are dropped, missing ones default to ''.
+    const storedKeys = (await store.get<Record<string, string>>('apiKeys')) ?? {};
+    const apiKeys = { ...EMPTY_KEYS };
+    for (const provider of Object.keys(apiKeys) as Provider[]) {
+      if (typeof storedKeys[provider] === 'string') apiKeys[provider] = storedKeys[provider];
+    }
+    const storedProvider = (await store.get<string>('activeProvider')) ?? 'anthropic';
+    const activeProvider: Provider =
+      storedProvider in DEFAULT_MODELS ? (storedProvider as Provider) : 'anthropic';
+    const storedModel = await store.get<string>('model');
+    // A model persisted for a removed provider (e.g. the old NHA vLLM path)
+    // must not leak into the new active provider.
+    const model =
+      storedModel && storedProvider === activeProvider ? storedModel : DEFAULT_MODELS[activeProvider];
     const theme = (await store.get<'dark' | 'light'>('theme')) ?? 'dark';
     const outputStyle = (await store.get<OutputStyle>('outputStyle')) ?? 'default';
     set({ apiKeys, activeProvider, model, theme, outputStyle, loaded: true });

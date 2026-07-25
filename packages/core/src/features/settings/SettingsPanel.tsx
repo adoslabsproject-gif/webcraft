@@ -8,7 +8,9 @@ const PROVIDERS: { id: Provider; label: string; hint: string }[] = [
   { id: 'anthropic', label: 'Anthropic', hint: 'Claude API key (sk-ant-...)' },
   { id: 'openai', label: 'OpenAI', hint: 'OpenAI API key (sk-...)' },
   { id: 'openrouter', label: 'OpenRouter', hint: 'OpenRouter key (sk-or-...)' },
-  { id: 'nha', label: 'NHA Liara (free)', hint: 'Token from nothumanallowed.com' },
+  { id: 'deepseek', label: 'DeepSeek', hint: 'DeepSeek API key (sk-...)' },
+  { id: 'grok', label: 'Grok (x.ai)', hint: 'xAI API key (xai-...)' },
+  { id: 'gemini', label: 'Gemini', hint: 'Google AI Studio key (AIza...)' },
 ];
 
 /// Settings panel — provider selection + API keys (Tauri store backed).

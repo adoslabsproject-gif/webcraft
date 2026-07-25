@@ -7,6 +7,7 @@ import { createDir, fileExists, listDir, readFile, removePath, renamePath, write
 import { requirePermission } from './permissions';
 import { renderUnifiedDiff } from './diff-format';
 import { runPostHook, runPreHook } from './hooks';
+import { shellEnv } from './shell-env';
 import type { ToolUseBlock } from './types';
 
 /// Execute a tool_use block produced by the model and return the
@@ -287,15 +288,27 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
   },
 
   glob: async (c) => {
-    const pattern = str(c, 'pattern');
-    const path = optStr(c, 'path') ?? useAppStore.getState().projectRoot;
+    // Accept both argument spellings: the `glob` tool schema declares
+    // `pattern`/`cwd`, the `find_files` alias schema declares `glob`.
+    // Rejecting one of them produced "missing string arg" retry loops.
+    const pattern = optStr(c, 'pattern') ?? optStr(c, 'glob');
+    if (!pattern) return err(`Tool ${c.name}: provide a glob "pattern" (e.g. **/*.ts).`);
+    const path =
+      optStr(c, 'path') ?? optStr(c, 'cwd') ?? useAppStore.getState().projectRoot;
     if (!path) return err('No project root open. Open a folder first.');
-    // ripgrep --files + glob filter, ordered by mtime
+    const env = await shellEnv(path);
+    // ripgrep --files + glob filter, ordered by mtime; POSIX `find` fallback
+    // for machines without ripgrep (translates `**/*.ext` to `-name '*.ext'`).
+    const findName = pattern.replace(/^.*\//, '');
     try {
-      const result = await Command.create('sh', [
-        '-c',
-        `cd "${path}" && rg --files --glob ${JSON.stringify(pattern)} 2>/dev/null | head -500 | xargs -I{} ls -t "{}" 2>/dev/null || true`,
-      ]).execute();
+      const result = await Command.create(
+        'sh',
+        [
+          '-c',
+          `cd "${path}" && { rg --files --glob ${JSON.stringify(pattern)} 2>/dev/null || find . -type f -name ${JSON.stringify(findName)} -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/target/*' -not -path '*/dist/*' 2>/dev/null; } | head -500`,
+        ],
+        { env },
+      ).execute();
       return ok(result.stdout || '(no matches)');
     } catch (e) {
       return err(String(e));
@@ -394,21 +407,35 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     const root = useAppStore.getState().projectRoot;
     if (!root) return err('No project root open.');
     const args = ['--line-number', '--no-heading', '--color=never', '--max-count=100'];
+    // Dependency/build dirs are never what the model is looking for — they
+    // drown real hits (ripgrep only skips them when a .gitignore lists them,
+    // which not every opened folder has).
+    for (const excluded of ['node_modules', '.git', 'target', 'dist', 'build', '.next', 'vendor']) {
+      args.push('--glob', `!**/${excluded}/**`);
+    }
     if (glob) args.push('--glob', glob);
     if (type) args.push('--type', type);
     if (ctx) args.push('-C', ctx);
     if (ignore === 'true') args.push('-i');
     args.push(pattern, root);
+    const env = await shellEnv(root);
     try {
-      const out = await Command.create('rg', args).execute();
+      const out = await Command.create('rg', args, { env }).execute();
       return ok(out.stdout.slice(0, 8000) || '(no matches)');
     } catch {
-      // grep fallback
+      // grep fallback — BSD grep (macOS) has no --max-count long flag; -m is
+      // portable. Same directory exclusions as the ripgrep path.
       const safe = pattern.replace(/'/g, "'\\''");
-      const out = await Command.create('sh', [
-        '-c',
-        `grep -RInE${ignore === 'true' ? 'i' : ''} ${ctx ? `-C ${ctx}` : ''} '${safe}' --max-count=100 ${root} 2>/dev/null | head -200`,
-      ]).execute();
+      const excludeDirs =
+        '--exclude-dir=node_modules --exclude-dir=.git --exclude-dir=target --exclude-dir=dist --exclude-dir=build --exclude-dir=.next --exclude-dir=vendor';
+      const out = await Command.create(
+        'sh',
+        [
+          '-c',
+          `grep -RInE${ignore === 'true' ? 'i' : ''} ${ctx ? `-C ${ctx}` : ''} -m 100 ${excludeDirs} '${safe}' ${JSON.stringify(root)} 2>/dev/null | head -200`,
+        ],
+        { env },
+      ).execute();
       return ok(out.stdout.slice(0, 8000) || '(no matches)');
     }
   },
@@ -440,12 +467,23 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
   goto_definition: async () => err('goto_definition requires LSP server. Phase pending.'),
   rename_symbol: async () => err('rename_symbol requires LSP server. Phase pending.'),
 
-  get_diagnostics: async () => {
-    const problems = useAppStore.getState().problems;
+  get_diagnostics: async (c) => {
+    const pathFilter = optStr(c, 'path');
+    const problems = useAppStore
+      .getState()
+      .problems.filter((p) => !pathFilter || p.path === pathFilter || p.path.endsWith(pathFilter));
+    if (problems.length > 0) {
+      return ok(
+        problems
+          .map((p) => `[${p.severity}] ${p.path}:${p.line}:${p.column} — ${p.message}`)
+          .join('\n'),
+      );
+    }
+    // Be explicit about the scope instead of a bare "(no diagnostics)" that
+    // reads as "the whole project is clean": Monaco only analyzes files
+    // currently open in the editor.
     return ok(
-      problems
-        .map((p) => `[${p.severity}] ${p.path}:${p.line}:${p.column} — ${p.message}`)
-        .join('\n') || '(no diagnostics)',
+      '(no diagnostics in currently open editor files — this does NOT cover the whole project; run type_check for a full TypeScript pass or lint_file on specific files)',
     );
   },
 
@@ -487,8 +525,10 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     });
     if (!granted) return err('User denied permission to run command.');
 
+    const env = await shellEnv(cwd ?? null);
+
     if (background) {
-      const command = Command.create('sh', ['-c', cmd], cwd ? { cwd } : {});
+      const command = Command.create('sh', ['-c', cmd], { ...(cwd ? { cwd } : {}), env });
       const id = `bg_${Date.now().toString(36)}`;
       const logs: string[] = [];
       command.stdout.on('data', (line) => logs.push(line));
@@ -498,7 +538,7 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
       return ok(`Spawned background process. process_id=${id}`);
     }
 
-    const command = Command.create('sh', ['-c', cmd], cwd ? { cwd } : {});
+    const command = Command.create('sh', ['-c', cmd], { ...(cwd ? { cwd } : {}), env });
     const result = await Promise.race([
       command.execute(),
       new Promise<never>((_, reject) =>
@@ -852,31 +892,38 @@ function stripHtml(s: string): string {
 }
 async function runShell(cmd: string): Promise<{ content: string; isError: boolean }> {
   const cwd = useAppStore.getState().projectRoot ?? undefined;
-  const result = await Command.create('sh', ['-c', cmd], cwd ? { cwd } : {}).execute();
+  const env = await shellEnv(cwd ?? null);
+  const result = await Command.create('sh', ['-c', cmd], { ...(cwd ? { cwd } : {}), env }).execute();
   const combined = [result.stdout, result.stderr].filter(Boolean).join('\n');
   return result.code === 0 ? ok(combined || '(no output)') : err(`Exit ${result.code}:\n${combined}`);
 }
 async function runGit(args: string[]): Promise<{ content: string; isError: boolean }> {
   const cwd = useAppStore.getState().projectRoot ?? undefined;
-  const result = await Command.create('git', args, cwd ? { cwd } : {}).execute();
+  const env = await shellEnv(cwd ?? null);
+  const result = await Command.create('git', args, { ...(cwd ? { cwd } : {}), env }).execute();
   return result.code === 0
     ? ok(result.stdout || '(no output)')
     : err(`git exit ${result.code}:\n${result.stderr}`);
 }
 async function runScript(script: string): Promise<{ content: string; isError: boolean }> {
+  const cwd = useAppStore.getState().projectRoot ?? undefined;
+  const env = await shellEnv(cwd ?? null);
+  const attempts: string[] = [];
   for (const pm of ['pnpm', 'yarn', 'npm']) {
     try {
-      const cwd = useAppStore.getState().projectRoot ?? undefined;
-      const r = await Command.create(pm, ['run', script], cwd ? { cwd } : {}).execute();
+      const r = await Command.create(pm, ['run', script], {
+        ...(cwd ? { cwd } : {}),
+        env,
+      }).execute();
       const combined = [r.stdout, r.stderr].filter(Boolean).join('\n');
       return r.code === 0
         ? ok(combined || '(no output)')
         : err(`${pm} run ${script} exit ${r.code}:\n${combined.slice(0, 4000)}`);
-    } catch {
-      /* try next pm */
+    } catch (e) {
+      attempts.push(`${pm}: ${String(e)}`);
     }
   }
-  return err(`No package manager found to run ${script}`);
+  return err(`No package manager found to run "${script}".\n${attempts.join('\n')}`);
 }
 
 /// Unified-diff parser — handles standard `--- a/path` / `+++ b/path` /

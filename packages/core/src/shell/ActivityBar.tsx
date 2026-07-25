@@ -45,12 +45,14 @@ interface ActivityItem {
   kind: ActivityKind;
 }
 
+// AI Chat leads the bar: it is the primary entry point of the whole IDE
+// (users repeatedly failed to find it when it sat mid-list).
 const ITEMS: ActivityItem[] = [
+  { id: 'chat-tab', icon: MessageSquare, label: 'AI Chat', shortcut: '⌘L', tint: 'indigo', kind: 'editor-tab' },
   { id: 'explorer', icon: FileCode, label: 'Explorer', shortcut: '⇧⌘E', tint: 'sky', kind: 'panel' },
   { id: 'search', icon: Search, label: 'Search', shortcut: '⇧⌘F', tint: 'violet', kind: 'panel' },
   { id: 'git', icon: GitBranch, label: 'Source Control', tint: 'orange', kind: 'panel' },
   { id: 'outline', icon: ListTree, label: 'Outline', tint: 'amber', kind: 'panel' },
-  { id: 'chat-tab', icon: MessageSquare, label: 'AI Chat', shortcut: '⌘L', tint: 'indigo', kind: 'editor-tab' },
   { id: 'db-studio-tab', icon: Database, label: 'DB Studio', tint: 'emerald', kind: 'editor-tab' },
   { id: 'tool-library-tab', icon: Library, label: 'Tool Library', tint: 'cyan', kind: 'editor-tab' },
   { id: 'dev-server-tab', icon: Server, label: 'Dev Server', tint: 'rose', kind: 'editor-tab' },

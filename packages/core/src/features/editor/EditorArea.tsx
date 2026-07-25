@@ -9,7 +9,6 @@ import { RunButton } from '../run/RunButton';
 import { ToolLibraryView } from '../tool-library/ToolLibraryView';
 import { setEditor } from './editor-controller';
 import { EditorTabs } from './EditorTabs';
-import { registerGhostAutocomplete } from './ghost-autocomplete';
 import { InlineEditPrompt } from './InlineEditPrompt';
 import { registerInlineEditAction } from './inline-edit';
 import { useEditor } from './use-editor';
@@ -108,12 +107,85 @@ export function EditorArea() {
   );
 }
 
+/// Welcome screen — shown when no file is open. The fastest path into the
+/// product is a single prompt, so it leads with "build a website" example
+/// prompts that open the AI chat pre-filled and ready to send.
+const EXAMPLE_PROMPTS: { title: string; prompt: string }[] = [
+  {
+    title: '🎨 Portfolio site',
+    prompt:
+      'Build a complete portfolio website: dark theme, animated hero, projects grid, about section and contact form. Plain HTML/CSS/JS, no framework. Create all the files, then start a dev server so I can see it.',
+  },
+  {
+    title: '🍝 Restaurant landing',
+    prompt:
+      'Create a restaurant landing page with a hero, menu section with prices, photo gallery and a booking form. Responsive, elegant serif typography. Create all files and start the dev server.',
+  },
+  {
+    title: '🚀 SaaS landing page',
+    prompt:
+      'Scaffold a SaaS landing page in React + Vite + Tailwind: sticky navbar, hero with CTA, feature cards, pricing table with 3 tiers, FAQ accordion and footer. Install dependencies, create the project and run it.',
+  },
+  {
+    title: '📝 Blog',
+    prompt:
+      'Make a minimal personal blog: index page listing posts, individual post pages rendered from markdown files, dark/light toggle. Static — plain HTML/CSS/JS with a small build script. Create everything and serve it.',
+  },
+  {
+    title: '🛒 E-commerce demo',
+    prompt:
+      'Build a small e-commerce demo with a product grid, cart drawer with quantity controls and a checkout form with validation. React + Vite. Create the project, install deps and start the dev server.',
+  },
+  {
+    title: '📊 Admin dashboard',
+    prompt:
+      'Create an admin dashboard: sidebar navigation, stat cards, a chart (SVG, no external libs) and a sortable data table. Plain HTML/CSS/JS. Create all files and serve them.',
+  },
+];
+
 function EmptyState() {
+  const openChatTab = useAppStore((s) => s.openChatTab);
+  const setChatPrefill = useAppStore((s) => s.setChatPrefill);
+
+  function startWithPrompt(prompt: string) {
+    setChatPrefill(prompt);
+    openChatTab();
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-[var(--color-fg-dim)]">
-      <FileText className="h-12 w-12" />
-      <p className="text-sm">No file open</p>
-      <p className="text-xs">Click a file in the Explorer to start editing.</p>
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-8 text-[var(--color-fg-dim)]">
+      <div className="flex flex-col items-center gap-2">
+        <FileText className="h-10 w-10" />
+        <p className="text-sm font-medium text-[var(--color-fg-muted)]">
+          Build an entire website from a single prompt
+        </p>
+        <p className="text-xs">
+          Pick an example below, or open a file from the Explorer to edit by hand.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => openChatTab()}
+        className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-indigo-500/25 transition-colors hover:bg-indigo-500"
+      >
+        Open AI Chat
+        <kbd className="rounded bg-indigo-500/50 px-1.5 py-0.5 font-mono text-[10px]">⌘L</kbd>
+      </button>
+      <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
+        {EXAMPLE_PROMPTS.map((example) => (
+          <button
+            key={example.title}
+            type="button"
+            onClick={() => startWithPrompt(example.prompt)}
+            className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)] px-3 py-2.5 text-left transition-colors hover:border-indigo-500/50 hover:bg-[var(--color-bg-hover)]"
+          >
+            <div className="text-xs font-medium text-[var(--color-fg)]">{example.title}</div>
+            <div className="mt-0.5 line-clamp-2 text-[10px] leading-relaxed text-[var(--color-fg-subtle)]">
+              {example.prompt}
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { AlertTriangle, Loader2, Plus, Sparkles, Trash2, X, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { NhaProvider } from '../../../lib/ai/nha-client';
-import { AnthropicProvider } from '../../../lib/ai/anthropic-client';
+import { createProvider } from '../../../lib/ai/router';
 import { useSettingsStore } from '../../../store/settings-store';
 import { useDbStore } from '../db-store';
 
@@ -82,12 +81,7 @@ export function IndexManager({ table, onClose }: { table: string; onClose: () =>
       const colsResult = await runArbitrary(
         `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${table}' ORDER BY ordinal_position`,
       );
-      const provider =
-        activeProvider === 'nha'
-          ? new NhaProvider()
-          : apiKeys.anthropic
-            ? new AnthropicProvider(apiKeys.anthropic)
-            : null;
+      const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
       if (!provider) {
         window.alert('No AI provider configured.');
         return;

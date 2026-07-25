@@ -89,11 +89,12 @@ export const TOOLS: ToolDefinition[] = [
   {
     name: 'find_files',
     description:
-      'Find files in the project matching a glob pattern. Returns up to 500 absolute paths, one per line.',
+      'Find files in the project matching a glob pattern. Returns up to 500 paths, one per line. node_modules/.git/target/dist are excluded.',
     input_schema: {
       type: 'object',
       properties: {
-        glob: { type: 'string', description: 'Glob pattern, e.g. **/*.ts' },
+        glob: { type: 'string', description: 'Glob pattern, e.g. **/*.ts (alias: "pattern").' },
+        path: { type: 'string', description: 'Optional base dir; defaults to projectRoot.' },
       },
       required: ['glob'],
     },
@@ -145,12 +146,15 @@ export const TOOLS: ToolDefinition[] = [
   {
     name: 'grep',
     description:
-      'Search the project for a regex pattern (ripgrep). Up to 100 matches. Returns file:line:text.',
+      'Search the project for a regex pattern (ripgrep). Up to 100 matches. Returns file:line:text. node_modules/.git/target/dist/build are always excluded.',
     input_schema: {
       type: 'object',
       properties: {
         pattern: { type: 'string', description: 'Regex pattern (PCRE2 flavor).' },
         glob: { type: 'string', description: 'Optional file glob to limit search.' },
+        type: { type: 'string', description: 'Optional ripgrep file type (e.g. ts, rust, py).' },
+        context_lines: { type: 'string', description: 'Optional lines of context around each match.' },
+        ignore_case: { type: 'string', description: '"true" for case-insensitive search.' },
       },
       required: ['pattern'],
     },

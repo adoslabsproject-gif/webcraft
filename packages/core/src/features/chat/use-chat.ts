@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { createProvider, providerSupportsTools } from '../../lib/ai/router';
 import { executeTool } from '../../lib/ai/tool-executor';
 import { TOOLS } from '../../lib/ai/tools';
@@ -98,9 +98,7 @@ export function useChat() {
 
       const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
       if (!provider) {
-        store.setError(
-          `${activeProvider} needs an API key. Open Settings and add one, or switch to NHA Free (Liara) which works without a key.`,
-        );
+        store.setError(`${activeProvider} needs an API key. Open Settings and add one.`);
         return;
       }
 

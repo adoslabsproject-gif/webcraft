@@ -61,6 +61,10 @@ interface AppState {
   activeEditorTabId: string | null;
   projectRoot: string | null;
   problems: Problem[];
+  /// Text waiting to be inserted into the chat composer. Set by "Fix with
+  /// AI" / welcome prompt cards BEFORE the chat tab mounts; MessageInput
+  /// consumes and clears it on mount (a window event would race the mount).
+  chatPrefill: string | null;
   setActivityPanel: (panel: ActivityPanel) => void;
   setBottomTab: (tab: BottomTab) => void;
   toggleBottomPanel: () => void;
@@ -77,6 +81,7 @@ interface AppState {
   setActiveEditorTab: (id: string | null) => void;
   setProjectRoot: (root: string | null) => void;
   setProblems: (problems: Problem[]) => void;
+  setChatPrefill: (text: string | null) => void;
   /** Open the singleton DB Studio tab in the editor area (or focus it if already open). */
   openDbStudioTab: () => void;
   /** Open the singleton AI Chat tab. */
@@ -100,6 +105,7 @@ export const useAppStore = create<AppState>((set) => ({
   activeEditorTabId: null,
   projectRoot: null,
   problems: [],
+  chatPrefill: null,
   setActivityPanel: (panel: ActivityPanel) => set({ activityPanel: panel }),
   setBottomTab: (tab: BottomTab) => set({ bottomTab: tab, bottomPanelOpen: true }),
   toggleBottomPanel: () => set((s: AppState) => ({ bottomPanelOpen: !s.bottomPanelOpen })),
@@ -110,6 +116,7 @@ export const useAppStore = create<AppState>((set) => ({
   setChatDocked: (docked: boolean) => set({ chatDockedRight: docked }),
   notifyFsChange: () => set((s: AppState) => ({ fsChangeCounter: s.fsChangeCounter + 1 })),
   setProblems: (problems: Problem[]) => set({ problems }),
+  setChatPrefill: (text: string | null) => set({ chatPrefill: text }),
   openEditorTab: (tab: EditorTab) =>
     set((s: AppState) => {
       if (s.editorTabs.some((t) => t.id === tab.id)) {

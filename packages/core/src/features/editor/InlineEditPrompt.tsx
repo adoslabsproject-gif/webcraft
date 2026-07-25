@@ -46,11 +46,19 @@ export function InlineEditPrompt({ open, onClose }: InlineEditPromptProps) {
     if (!editor) return;
     const model = editor.getModel();
     if (!model) return;
-    let sel = editor.getSelection();
-    if (!sel || sel.isEmpty()) sel = model.getFullModelRange();
-    originalRangeRef.current = sel.toJSON();
-    originalTextRef.current = model.getValueInRange(sel);
-    currentRangeRef.current = sel.toJSON();
+    const sel = editor.getSelection();
+    // Whole-file edit when nothing is selected. Normalize Selection|Range to
+    // a plain IRange literal — the refs only need the 4 coordinates.
+    const target = !sel || sel.isEmpty() ? model.getFullModelRange() : sel;
+    const plainRange = {
+      startLineNumber: target.startLineNumber,
+      startColumn: target.startColumn,
+      endLineNumber: target.endLineNumber,
+      endColumn: target.endColumn,
+    };
+    originalRangeRef.current = plainRange;
+    originalTextRef.current = model.getValueInRange(target);
+    currentRangeRef.current = { ...plainRange };
 
     setBusy(true);
     const abort = new AbortController();

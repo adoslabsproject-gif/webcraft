@@ -32,12 +32,11 @@ export async function runInlineEdit(opts: InlineEditOptions): Promise<void> {
     return;
   }
 
-  let selection = editor.getSelection();
-  if (!selection || selection.isEmpty()) {
-    // Whole-file edit
-    selection = model.getFullModelRange();
-  }
-  const source = model.getValueInRange(selection);
+  const selection = editor.getSelection();
+  // Whole-file edit when nothing is selected.
+  const range: monaco.IRange =
+    !selection || selection.isEmpty() ? model.getFullModelRange() : selection;
+  const source = model.getValueInRange(range);
   const language = model.getLanguageId();
 
   const settings = useSettingsStore.getState();

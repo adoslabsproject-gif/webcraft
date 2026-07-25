@@ -1,15 +1,16 @@
 import { AnthropicProvider } from './anthropic-client';
-import { NhaProvider } from './nha-client';
+import { OpenAiCompatProvider } from './openai-compat-client';
 import type { ChatMessage, ContentBlock, ToolDefinition } from './types';
 import type { Provider as ProviderId } from '../../store/settings-store';
 
 /// Provider dispatcher — keeps the call surface identical regardless of
-/// backend (NHA free / Anthropic / OpenAI / OpenRouter). use-chat.ts depends
-/// only on `createProvider` + the common `stream()` shape.
+/// backend. use-chat.ts depends only on `createProvider` + the common
+/// `stream()` shape.
 ///
-/// Tool calling is supported natively by both Anthropic AND NHA Free (Liara).
-/// Qwen3-32B emits OpenAI-format function calls; NhaProvider bridges those
-/// into Anthropic-shaped ContentBlocks so the chat loop is provider-agnostic.
+/// Anthropic speaks its native Messages API; every other provider (OpenAI,
+/// OpenRouter, DeepSeek, Grok, Gemini) goes through the shared
+/// OpenAI-compatible client, which bridges OpenAI function calls into
+/// Anthropic-shaped ContentBlocks so the chat loop is provider-agnostic.
 
 export interface ProviderStreamCallbacks {
   onText: (delta: string) => void;
@@ -40,15 +41,43 @@ export interface CreateProviderInput {
   apiKey: string;
 }
 
+const OPENAI_COMPAT_ENDPOINTS: Record<
+  Exclude<ProviderId, 'anthropic'>,
+  { endpoint: string; label: string; extraHeaders?: Record<string, string> }
+> = {
+  openai: {
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    label: 'OpenAI',
+  },
+  openrouter: {
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+    label: 'OpenRouter',
+    extraHeaders: { 'X-Title': 'WebCraft IDE' },
+  },
+  deepseek: {
+    endpoint: 'https://api.deepseek.com/v1/chat/completions',
+    label: 'DeepSeek',
+  },
+  grok: {
+    endpoint: 'https://api.x.ai/v1/chat/completions',
+    label: 'Grok (x.ai)',
+  },
+  gemini: {
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+    label: 'Gemini',
+  },
+};
+
 export function createProvider({ provider, apiKey }: CreateProviderInput): LlmProvider | null {
-  if (provider === 'nha') return new NhaProvider();
-  if (provider === 'anthropic') {
-    if (!apiKey) return null;
-    return new AnthropicProvider(apiKey);
-  }
-  return null;
+  if (!apiKey) return null;
+  if (provider === 'anthropic') return new AnthropicProvider(apiKey);
+  const compat = OPENAI_COMPAT_ENDPOINTS[provider];
+  if (!compat) return null;
+  return new OpenAiCompatProvider({ ...compat, apiKey });
 }
 
-export function providerSupportsTools(provider: ProviderId): boolean {
-  return provider === 'anthropic' || provider === 'nha';
+/// Every wired provider supports native function calling (OpenAI-compat
+/// providers via `tools`/`tool_choice`, Anthropic via `tool_use`).
+export function providerSupportsTools(_provider: ProviderId): boolean {
+  return true;
 }
