@@ -145,7 +145,7 @@ Installers for every platform are on the **[Releases page](https://github.com/ad
 |----------|------|
 | 🍎 macOS (Apple Silicon / Intel) | `WebCraft_x.y.z_aarch64.dmg` / `WebCraft_x.y.z_x64.dmg` |
 | 🪟 Windows | `WebCraft_x.y.z_x64-setup.exe` (or `.msi`) |
-| 🐧 Linux | `.AppImage` · `.deb` · `.rpm` |
+| 🐧 Linux | `.AppImage` (bundles the voice libraries; deb/rpm will follow) |
 
 > Builds are not yet code-signed: on macOS use right-click → *Open* the first time; on Windows accept the SmartScreen prompt.
 

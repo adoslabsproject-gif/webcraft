@@ -41,7 +41,9 @@ jobs:
             args: ''
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            args: ''
+            # AppImage only: it embeds the sherpa/onnxruntime .so files via
+            # linuxdeploy; deb/rpm would ship without them → broken voice.
+            args: '--bundles appimage'
 
     runs-on: ${{ matrix.platform }}
 
@@ -59,7 +61,8 @@ jobs:
             librsvg2-dev \
             patchelf \
             build-essential \
-            libssl-dev
+            libssl-dev \
+            libasound2-dev
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -115,6 +118,21 @@ jobs:
           node scripts/copy-voice-libs.mjs
           mv src-tauri/_mac.conf.bak src-tauri/tauri.macos.conf.json
 
+      - name: Pre-build voice libs (Linux two-phase)
+        if: matrix.platform == 'ubuntu-22.04'
+        working-directory: apps/desktop
+        run: |
+          # Phase 1: compiling makes sherpa-rs download its .so files into
+          # ~/.cache/sherpa-rs. Phase 2 (tauri-action below) bundles with
+          # that dir on LD_LIBRARY_PATH so ldd resolves the libs and
+          # linuxdeploy embeds them into the AppImage.
+          pnpm tauri build --no-bundle
+          SHERPA_SO=$(find ~/.cache/sherpa-rs src-tauri/target -name 'libsherpa-onnx-c-api.so' 2>/dev/null | head -1)
+          if [ -z "$SHERPA_SO" ]; then echo "::error::libsherpa-onnx-c-api.so not found after build"; exit 1; fi
+          SHERPA_LIB_DIR=$(dirname "$SHERPA_SO")
+          echo "LD_LIBRARY_PATH=$SHERPA_LIB_DIR:$LD_LIBRARY_PATH" >> "$GITHUB_ENV"
+          echo "voice .so dir: $SHERPA_LIB_DIR"
+
       - name: Pre-build voice libs (Windows two-phase)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
@@ -144,6 +162,19 @@ jobs:
           releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('WebCraft {0}', github.ref_name) || '' }}
           releaseDraft: true
           prerelease: false
+
+      - name: Verify AppImage embeds the voice libraries
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          APPIMAGE=$(find apps/desktop/src-tauri/target -name '*.AppImage' | head -1)
+          if [ -z "$APPIMAGE" ]; then echo "::error::AppImage not produced"; exit 1; fi
+          chmod +x "$APPIMAGE"
+          "$APPIMAGE" --appimage-extract >/dev/null
+          if ! find squashfs-root -name 'libsherpa-onnx-c-api.so' | grep -q .; then
+            echo "::error::voice .so files missing from the AppImage — it would crash at launch"
+            exit 1
+          fi
+          echo "AppImage contains the sherpa/onnxruntime libraries."
 
       - name: Upload artifacts (manual runs)
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}

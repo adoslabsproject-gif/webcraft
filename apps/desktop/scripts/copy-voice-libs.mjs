@@ -16,9 +16,9 @@
 /// `--target`, plus the sherpa-rs download cache) — so we search all of
 /// them and copy the newest copy of each library name.
 
-import { cpSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const srcTauri = join(dirname(fileURLToPath(import.meta.url)), '..', 'src-tauri');
@@ -55,7 +55,15 @@ function findLibs(roots, matcher) {
 function stage(destDir, libs) {
   mkdirSync(destDir, { recursive: true });
   for (const [name, { path }] of libs) {
-    cpSync(path, join(destDir, name));
+    const dest = join(destDir, name);
+    // Idempotent re-runs: the script executes both as a pre-build step and
+    // as beforeBundleCommand. Remove any previous copy first and always
+    // dereference — some of these libs are symlinks (libonnxruntime.dylib →
+    // libonnxruntime.1.17.1.dylib) and re-copying a symlink over its own
+    // staged resolution throws "src and dest cannot be the same".
+    if (resolve(path) === resolve(dest)) continue;
+    rmSync(dest, { force: true });
+    cpSync(path, dest, { dereference: true });
     console.log(`voice-libs: staged ${name} <- ${path}`);
   }
 }
