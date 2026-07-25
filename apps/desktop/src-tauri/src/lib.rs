@@ -9,6 +9,7 @@ mod fs_ops;
 mod menu;
 mod pty;
 mod sidecar;
+mod voice;
 
 use fs_ops::{
     webcraft_exists, webcraft_mkdir, webcraft_read_dir, webcraft_read_file, webcraft_remove,
@@ -17,6 +18,7 @@ use fs_ops::{
 use pty::{pty_input, pty_kill, pty_resize, pty_spawn, PtyState};
 use sidecar::{webcraft_sidecar_port, SidecarState};
 use tauri::Manager;
+use voice::{voice_start, voice_stop_transcribe, voice_stt_download, voice_stt_present, VoiceState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -37,6 +39,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .manage(PtyState::default())
         .manage(SidecarState::default())
+        .manage(VoiceState::default())
         .invoke_handler(tauri::generate_handler![
             pty_spawn,
             pty_input,
@@ -50,6 +53,10 @@ pub fn run() {
             webcraft_rename,
             webcraft_exists,
             webcraft_sidecar_port,
+            voice_stt_present,
+            voice_stt_download,
+            voice_start,
+            voice_stop_transcribe,
         ])
         .setup(|app| {
             menu::install(app.handle())?;

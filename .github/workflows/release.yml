@@ -85,6 +85,46 @@ jobs:
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
 
+      # ── Voice (sherpa-onnx) native libraries ─────────────────────────────
+      # The shared libs only exist AFTER the first cargo build, but the
+      # platform bundle configs (tauri.macos.conf.json / tauri.windows.conf.
+      # json) are validated BEFORE it. Two-phase dance: hide the platform
+      # config, build once (produces the libs), stage them, restore the
+      # config — the tauri-action build below then bundles them.
+
+      - name: MSVC dev environment (for cargs.lib)
+        if: matrix.platform == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build cargs.lib (C dep missing from the sherpa-onnx shared package)
+        if: matrix.platform == 'windows-latest'
+        shell: cmd
+        run: |
+          if not exist apps\desktop\src-tauri\cargs-lib mkdir apps\desktop\src-tauri\cargs-lib
+          curl -L -o cargs.c https://raw.githubusercontent.com/likle/cargs/master/src/cargs.c
+          curl -L -o cargs.h https://raw.githubusercontent.com/likle/cargs/master/include/cargs.h
+          cl /nologo /c /I. cargs.c
+          lib /nologo /OUT:apps\desktop\src-tauri\cargs-lib\cargs.lib cargs.obj
+
+      - name: Pre-build voice libs (macOS two-phase)
+        if: matrix.platform == 'macos-latest'
+        working-directory: apps/desktop
+        run: |
+          mv src-tauri/tauri.macos.conf.json src-tauri/_mac.conf.bak
+          pnpm tauri build ${{ matrix.args }} --no-bundle
+          node scripts/copy-voice-libs.mjs
+          mv src-tauri/_mac.conf.bak src-tauri/tauri.macos.conf.json
+
+      - name: Pre-build voice libs (Windows two-phase)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        working-directory: apps/desktop
+        run: |
+          Move-Item src-tauri/tauri.windows.conf.json src-tauri/_win.conf.bak -Force
+          pnpm tauri build --no-bundle
+          node scripts/copy-voice-libs.mjs
+          Move-Item src-tauri/_win.conf.bak src-tauri/tauri.windows.conf.json -Force
+
       - name: Build and bundle
         uses: tauri-apps/tauri-action@v0
         env:

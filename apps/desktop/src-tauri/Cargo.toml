@@ -25,6 +25,15 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # PTY for the integrated terminal — cross-platform (Unix + Windows ConPTY)
 portable-pty = "0.9"
+# Voice dictation — local whisper STT (sherpa-onnx) + native mic capture.
+# Same stack as the Liara app; model downloaded on-demand from GitHub.
+sherpa-rs = { version = "0.6", features = ["download-binaries"] }
+cpal = "0.15"
+# STT model download: blocking HTTP + sha256 verify + zip extract (deflate
+# only — no bzip2/zstd native deps).
+ureq = "2"
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 # Async runtime for the PTY reader threads / channels
 tokio = { version = "1", features = ["sync", "rt", "rt-multi-thread", "io-util", "macros"] }
 parking_lot = "0.12"

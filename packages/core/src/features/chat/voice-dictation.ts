@@ -1,37 +1,15 @@
-/// Voice dictation — uses the platform Web Speech API (WKWebView on macOS
-/// has `webkitSpeechRecognition`). Streams interim results so the user sees
-/// their words appear live in the composer.
+import { invoke } from '@tauri-apps/api/core';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+
+/// Voice dictation — LOCAL whisper STT running in the Rust core (sherpa-onnx
+/// + cpal mic capture), NOT the Web Speech API: WKWebView (macOS) and
+/// WebView2 (Windows) never implemented SpeechRecognition, so the old
+/// browser-based path silently did nothing in packaged builds.
 ///
-/// Fallback story: if the host browser lacks SpeechRecognition (some Linux
-/// WebKit builds), createDictation() returns null and the caller hides
-/// the microphone button.
-
-type SpeechRecognitionLike = {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: ((e: SpeechRecognitionEvent) => void) | null;
-  onerror: ((e: { error: string }) => void) | null;
-  onend: (() => void) | null;
-};
-
-interface SpeechRecognitionEvent {
-  resultIndex: number;
-  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }>;
-}
-
-type RecognitionCtor = new () => SpeechRecognitionLike;
-
-function getCtor(): RecognitionCtor | null {
-  const w = window as unknown as {
-    SpeechRecognition?: RecognitionCtor;
-    webkitSpeechRecognition?: RecognitionCtor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
+/// Flow: start() begins native mic capture; stop() ends it and transcribes
+/// the whole utterance offline (whisper-small int8). The ~232MB model is
+/// downloaded once from the WebCraft GitHub release at first use — progress
+/// is surfaced through onStatus.
 
 export interface Dictation {
   start: (lang?: string) => void;
@@ -44,59 +22,103 @@ export interface DictationHandlers {
   onFinal: (transcript: string) => void;
   onError: (msg: string) => void;
   onEnd: () => void;
+  /// Lifecycle messages worth showing near the mic button: model download
+  /// progress ("Preparing voice model… 42%"), transcription in progress.
+  onStatus?: (msg: string | null) => void;
 }
 
+/// Native STT is always available — the model downloads on demand.
 export function isDictationSupported(): boolean {
-  return getCtor() !== null;
+  return true;
+}
+
+/// Map a BCP-47 tag ("it-IT", "en-US") to whisper's 2-letter code.
+function whisperLang(tag: string | undefined): string {
+  if (!tag) return '';
+  return tag.slice(0, 2).toLowerCase();
 }
 
 export function createDictation(h: DictationHandlers): Dictation | null {
-  const Ctor = getCtor();
-  if (!Ctor) return null;
-  const recog = new Ctor();
-  recog.continuous = true;
-  recog.interimResults = true;
+  let recording = false;
+  let destroyed = false;
+  let language = '';
 
-  recog.onresult = (e) => {
-    let interim = '';
-    let final = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const res = e.results[i]!;
-      const alt = res[0]!;
-      if (res.isFinal) final += alt.transcript;
-      else interim += alt.transcript;
+  async function ensureModel(): Promise<boolean> {
+    try {
+      if (await invoke<boolean>('voice_stt_present')) return true;
+    } catch (e) {
+      h.onError(String(e));
+      return false;
     }
-    if (final) h.onFinal(final);
-    if (interim) h.onInterim(interim);
-  };
-  recog.onerror = (e) => h.onError(e.error);
-  recog.onend = () => h.onEnd();
+    let unlisten: UnlistenFn | null = null;
+    try {
+      h.onStatus?.('Preparing voice model (one-time download)…');
+      unlisten = await listen<{ downloaded: number; total: number; done: boolean }>(
+        'stt-download-progress',
+        (event) => {
+          const { downloaded, total, done } = event.payload;
+          if (done) h.onStatus?.('Extracting voice model…');
+          else h.onStatus?.(`Downloading voice model… ${Math.round((downloaded / total) * 100)}%`);
+        },
+      );
+      await invoke('voice_stt_download');
+      h.onStatus?.(null);
+      return true;
+    } catch (e) {
+      h.onStatus?.(null);
+      h.onError(`Voice model download failed: ${String(e)}`);
+      return false;
+    } finally {
+      unlisten?.();
+    }
+  }
 
   return {
     start(lang) {
-      recog.lang = lang ?? 'en-US';
-      try {
-        recog.start();
-      } catch {
-        /* already started */
-      }
+      if (recording || destroyed) return;
+      language = whisperLang(lang);
+      void (async () => {
+        if (!(await ensureModel()) || destroyed) {
+          h.onEnd();
+          return;
+        }
+        try {
+          await invoke('voice_start');
+          recording = true;
+          h.onStatus?.('Listening…');
+        } catch (e) {
+          h.onError(String(e));
+          h.onEnd();
+        }
+      })();
     },
     stop() {
-      try {
-        recog.stop();
-      } catch {
-        /* already stopped */
+      if (!recording) {
+        h.onEnd();
+        return;
       }
+      recording = false;
+      void (async () => {
+        try {
+          h.onStatus?.('Transcribing…');
+          const text = await invoke<string>('voice_stop_transcribe', { language });
+          h.onStatus?.(null);
+          if (text) h.onFinal(text);
+        } catch (e) {
+          h.onStatus?.(null);
+          h.onError(String(e));
+        } finally {
+          h.onEnd();
+        }
+      })();
     },
     destroy() {
-      try {
-        recog.abort();
-      } catch {
-        /* */
+      destroyed = true;
+      if (recording) {
+        recording = false;
+        // Best-effort: stop the native capture, discard the transcript.
+        void invoke('voice_stop_transcribe', { language }).catch(() => {});
       }
-      recog.onresult = null;
-      recog.onerror = null;
-      recog.onend = null;
     },
   };
 }

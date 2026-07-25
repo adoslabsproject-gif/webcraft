@@ -7,6 +7,7 @@
     "beforeDevCommand": "pnpm vite:dev",
     "devUrl": "http://localhost:11420",
     "beforeBuildCommand": "pnpm vite:build",
+    "beforeBundleCommand": "node scripts/copy-voice-libs.mjs",
     "frontendDist": "../dist"
   },
   "app": {
@@ -38,6 +39,9 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "macOS": {
+      "minimumSystemVersion": "11.0"
+    },
     "category": "DeveloperTool",
     "copyright": "© 2026 Nicola Cucurachi",
     "shortDescription": "The most advanced AI IDE ever made",

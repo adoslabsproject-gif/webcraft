@@ -38,6 +38,7 @@ export function MessageInput({
   const [dragging, setDragging] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [listening, setListening] = useState(false);
+  const [voiceStatus, setVoiceStatus] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dictationRef = useRef<Dictation | null>(null);
@@ -56,8 +57,12 @@ export function MessageInput({
         dictationBaseRef.current = `${dictationBaseRef.current}${dictationBaseRef.current ? ' ' : ''}${t}`;
         setText(dictationBaseRef.current);
       },
-      onError: () => setListening(false),
+      onError: () => {
+        setListening(false);
+        setVoiceStatus(null);
+      },
       onEnd: () => setListening(false),
+      onStatus: (msg) => setVoiceStatus(msg),
     });
     if (!dict) return;
     dictationRef.current = dict;
@@ -224,18 +229,25 @@ export function MessageInput({
           <ImageIcon className="h-3.5 w-3.5" />
         </button>
         {isDictationSupported() ? (
-          <button
-            type="button"
-            onClick={toggleDictation}
-            title={listening ? 'Stop dictation' : 'Start voice dictation'}
-            className={`flex h-8 w-8 items-center justify-center self-end rounded border transition-colors ${
-              listening
-                ? 'animate-pulse border-rose-500 bg-rose-500/15 text-rose-300'
-                : 'border-neutral-800 text-neutral-400 hover:border-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-300'
-            }`}
-          >
-            {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-          </button>
+          <div className="relative self-end">
+            {voiceStatus ? (
+              <div className="absolute bottom-full right-0 mb-1.5 whitespace-nowrap rounded border border-neutral-700 bg-neutral-900 px-2 py-1 text-[10px] text-neutral-300 shadow-lg">
+                {voiceStatus}
+              </div>
+            ) : null}
+            <button
+              type="button"
+              onClick={toggleDictation}
+              title={listening ? 'Stop dictation' : 'Start voice dictation'}
+              className={`flex h-8 w-8 items-center justify-center rounded border transition-colors ${
+                listening
+                  ? 'animate-pulse border-rose-500 bg-rose-500/15 text-rose-300'
+                  : 'border-neutral-800 text-neutral-400 hover:border-indigo-500 hover:bg-indigo-500/10 hover:text-indigo-300'
+              }`}
+            >
+              {listening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+            </button>
+          </div>
         ) : null}
         <input
           ref={fileInputRef}

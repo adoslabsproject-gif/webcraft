@@ -1,7 +1,7 @@
 use tauri::menu::{
     AboutMetadataBuilder, MenuBuilder, MenuItemBuilder, PredefinedMenuItem, SubmenuBuilder,
 };
-use tauri::{AppHandle, Emitter, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Runtime};
 
 /// Build the native application menu (macOS top bar + Windows window menu)
 /// and wire each item to a Tauri event the renderer listens to.
