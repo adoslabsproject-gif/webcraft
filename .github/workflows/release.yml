@@ -89,16 +89,13 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # macOS code-signing + notarization — configure these repo secrets to
-          # ship a .dmg that opens without Gatekeeper warnings:
-          #   APPLE_CERTIFICATE / APPLE_CERTIFICATE_PASSWORD / APPLE_SIGNING_IDENTITY
-          #   APPLE_ID / APPLE_PASSWORD / APPLE_TEAM_ID
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # macOS code-signing + notarization: once an Apple Developer
+          # certificate exists, add the repo secrets APPLE_CERTIFICATE,
+          # APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_ID,
+          # APPLE_PASSWORD, APPLE_TEAM_ID and re-add them here as env vars.
+          # NOTE: do NOT reference the secrets before they exist — empty
+          # values make tauri-action attempt a codesign with a blank
+          # certificate and the macOS build fails.
         with:
           projectPath: apps/desktop
           args: ${{ matrix.args }}
