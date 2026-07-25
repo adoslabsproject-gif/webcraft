@@ -11,8 +11,13 @@ import { SettingsPanel } from '../features/settings/SettingsPanel';
 export function Sidebar() {
   const panel = useAppStore((s) => s.activityPanel);
 
+  // Settings needs extra room: its rows pair a label with action buttons and
+  // at 288px the buttons wrap/overflow their boxes. Other panels keep the
+  // compact width.
+  const width = panel === 'settings' ? 'w-80' : 'w-72';
+
   return (
-    <aside className="flex w-72 flex-col border-r border-neutral-800 bg-neutral-925">
+    <aside className={`flex ${width} flex-col border-r border-neutral-800 bg-neutral-925`}>
       {panel === 'explorer' && <FileTree />}
       {panel === 'search' && <SearchPanel />}
       {panel === 'git' && <GitPanel />}

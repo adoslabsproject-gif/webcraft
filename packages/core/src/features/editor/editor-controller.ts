@@ -14,8 +14,39 @@ type Editor = monaco.editor.IStandaloneCodeEditor;
 
 let currentEditor: Editor | null = null;
 
+/// Reveal request that outlives editor remounts. Jumping from the Problems
+/// panel opens the tab first; the editor then unmounts (loading spinner)
+/// and remounts with the new model, so the reveal must wait until an editor
+/// whose model matches the requested path is actually live.
+let pendingReveal: { path: string; line: number; column: number } | null = null;
+
 export function setEditor(editor: Editor | null): void {
   currentEditor = editor;
+  if (editor) {
+    editor.onDidChangeModel(() => consumePendingReveal());
+    consumePendingReveal();
+  }
+}
+
+/// Jump to a position in a file. If the file is already the active model the
+/// reveal happens immediately; otherwise it stays pending until the editor
+/// (re)mounts with that model. Caller is responsible for opening the tab.
+export function revealLocation(path: string, line: number, column: number): void {
+  pendingReveal = { path, line, column };
+  consumePendingReveal();
+}
+
+function consumePendingReveal(): void {
+  const editor = currentEditor;
+  const target = pendingReveal;
+  if (!editor || !target) return;
+  const model = editor.getModel();
+  if (!model || model.uri.path !== target.path) return;
+  const position = { lineNumber: target.line, column: target.column };
+  editor.setPosition(position);
+  editor.revealPositionInCenter(position);
+  editor.focus();
+  pendingReveal = null;
 }
 
 export function getEditor(): Editor | null {

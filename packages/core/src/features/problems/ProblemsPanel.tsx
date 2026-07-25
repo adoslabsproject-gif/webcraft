@@ -9,18 +9,25 @@ import {
   Sparkles,
   Wrench,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore, type Problem } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
+import { revealLocation } from '../editor/editor-controller';
 
 /// Problems panel — diagnostics with per-issue Copy / How-to-fix / AI-fix
 /// actions and a bulk "Copy all" in the header. Messages are selectable
 /// (`.select-text` opts back in over the global `user-select: none`).
+///
+/// Clicking a problem opens the file AND jumps to line:column (the reveal
+/// is queued in editor-controller until the model is live) while expanding
+/// the full, untruncated detail. Right-click opens a context menu with
+/// "Copy problem" / "Copy all problems".
 export function ProblemsPanel() {
   const problems = useAppStore((s) => s.problems);
   const openTab = useAppStore((s) => s.openEditorTab);
   const openChatTab = useAppStore((s) => s.openChatTab);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [menu, setMenu] = useState<{ x: number; y: number; problem: Problem } | null>(null);
 
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.filter((p) => p.severity === 'warning').length;
@@ -80,18 +87,95 @@ export function ProblemsPanel() {
           <ProblemRow
             key={p.id}
             problem={p}
-            onJump={() =>
+            onJump={() => {
               openTab({
                 id: p.path,
                 path: p.path,
                 label: p.path.split('/').pop() ?? p.path,
                 dirty: false,
-              })
-            }
+              });
+              revealLocation(p.path, p.line, p.column);
+            }}
             onAskAi={() => openChatTab()}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setMenu({ x: e.clientX, y: e.clientY, problem: p });
+            }}
           />
         ))}
       </ul>
+      {menu ? (
+        <ProblemContextMenu
+          x={menu.x}
+          y={menu.y}
+          onClose={() => setMenu(null)}
+          onCopyOne={() => void navigator.clipboard.writeText(format(menu.problem))}
+          onCopyAll={() => void copyAll()}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+/// Floating context menu for a problem row — same interaction contract as
+/// FileTreeContextMenu: fixed at cursor, click-outside or Escape closes.
+function ProblemContextMenu({
+  x,
+  y,
+  onClose,
+  onCopyOne,
+  onCopyAll,
+}: {
+  x: number;
+  y: number;
+  onClose: () => void;
+  onCopyOne: () => void;
+  onCopyAll: () => void;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    window.addEventListener('mousedown', onDown, true);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown, true);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  const items = [
+    { id: 'copy-one', label: 'Copy problem', run: onCopyOne },
+    { id: 'copy-all', label: 'Copy all problems', run: onCopyAll },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      role="menu"
+      className="fixed z-50 min-w-44 rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] py-1 shadow-xl"
+      style={{ left: x, top: y }}
+    >
+      {items.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          role="menuitem"
+          onClick={() => {
+            item.run();
+            onClose();
+          }}
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11px] text-[var(--color-fg)] hover:bg-[var(--color-bg-hover)]"
+        >
+          <Copy className="h-3 w-3 text-[var(--color-fg-subtle)]" />
+          {item.label}
+        </button>
+      ))}
     </div>
   );
 }
@@ -100,12 +184,15 @@ function ProblemRow({
   problem,
   onJump,
   onAskAi,
+  onContextMenu,
 }: {
   problem: Problem;
   onJump: () => void;
   onAskAi: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
 }) {
   const [showHint, setShowHint] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const [copied, setCopied] = useState(false);
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const hasKey = useSettingsStore((s) => Boolean(s.apiKeys[s.activeProvider]));
@@ -140,14 +227,18 @@ function ProblemRow({
   }
 
   return (
-    <li className="hover:bg-[var(--color-bg-hover)]">
+    <li className="hover:bg-[var(--color-bg-hover)]" onContextMenu={onContextMenu}>
       <div className="flex items-start gap-2 px-3 py-1.5 text-[11px]">
         <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${color}`} />
         <div className="min-w-0 flex-1 select-text">
           <button
             type="button"
-            onClick={onJump}
+            onClick={() => {
+              onJump();
+              setShowDetail((s) => !s);
+            }}
             aria-label="Jump to file"
+            title="Go to error — click again to collapse the detail"
             className="block w-full truncate text-left text-[var(--color-fg)]"
           >
             {problem.message}
@@ -194,6 +285,17 @@ function ProblemRow({
           ) : null}
         </div>
       </div>
+      {showDetail ? (
+        <div className="select-text border-t border-[var(--color-border-subtle)] bg-[var(--color-bg)] px-3 py-2 text-[10px]">
+          <div className="whitespace-pre-wrap text-[var(--color-fg)]">{problem.message}</div>
+          <div className="mt-1.5 font-mono text-[var(--color-fg-subtle)]">
+            {problem.path}:{problem.line}:{problem.column}
+          </div>
+          <div className={`mt-0.5 font-semibold uppercase tracking-wider ${color}`}>
+            {problem.severity}
+          </div>
+        </div>
+      ) : null}
       {showHint && hint ? (
         <div className="select-text border-t border-[var(--color-info)]/20 bg-[var(--color-info-muted)] px-3 py-2 text-[10px] text-[var(--color-info)]">
           <div className="mb-1 font-semibold uppercase tracking-wider">How to fix</div>

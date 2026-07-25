@@ -73,52 +73,6 @@ window.addEventListener('unhandledrejection', (e) => {
   showUnhandledBanner(e.reason);
 });
 
-/// On-screen click diagnostic — fades in a small green badge bottom-right
-/// every time a click event fires, showing the tag + class + id of the
-/// element actually targeted. Lets us see WITHOUT DevTools whether the
-/// click is hitting the button we expect or some overlay covering it.
-let clickBadge: HTMLDivElement | null = null;
-let clickBadgeTimer: ReturnType<typeof setTimeout> | null = null;
-window.addEventListener(
-  'click',
-  (e) => {
-    const t = e.target as Element | null;
-    if (!t) return;
-    const desc = `${t.tagName.toLowerCase()}${t.id ? '#' + t.id : ''}${
-      typeof t.className === 'string' && t.className ? '.' + t.className.split(/\s+/).slice(0, 3).join('.') : ''
-    }`;
-    if (!clickBadge) {
-      clickBadge = document.createElement('div');
-      clickBadge.style.cssText = [
-        'position:fixed',
-        'bottom:36px',
-        'right:12px',
-        'z-index:99998',
-        'padding:6px 10px',
-        'font:11px/1.3 ui-monospace,SF Mono,monospace',
-        'color:#86efac',
-        'background:rgba(20,83,45,0.92)',
-        'border:1px solid rgba(74,222,128,0.4)',
-        'border-radius:6px',
-        'max-width:60vw',
-        'overflow:hidden',
-        'text-overflow:ellipsis',
-        'white-space:nowrap',
-        'pointer-events:none',
-        'transition:opacity 0.3s',
-      ].join(';');
-      document.body.appendChild(clickBadge);
-    }
-    clickBadge.textContent = `🎯 ${desc}`;
-    clickBadge.style.opacity = '1';
-    if (clickBadgeTimer) clearTimeout(clickBadgeTimer);
-    clickBadgeTimer = setTimeout(() => {
-      if (clickBadge) clickBadge.style.opacity = '0';
-    }, 2500);
-  },
-  true, // capture phase — fires even if downstream stopPropagation
-);
-
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';

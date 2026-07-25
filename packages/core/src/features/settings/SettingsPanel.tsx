@@ -46,7 +46,8 @@ export function SettingsPanel() {
                     key={p.id}
                     type="button"
                     onClick={() => setActiveProvider(p.id)}
-                    className={`rounded border px-2 py-1.5 text-left text-xs transition-colors ${
+                    title={p.label}
+                    className={`min-w-0 truncate rounded border px-2 py-1.5 text-left text-xs transition-colors ${
                       activeProvider === p.id
                         ? 'border-indigo-500 bg-indigo-500/10 text-neutral-100'
                         : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-700'
@@ -162,13 +163,13 @@ function ApiKeyField({
           value={draft}
           placeholder={hint}
           onChange={(e) => setDraft(e.target.value)}
-          className="flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1.5 font-mono text-xs text-neutral-200 placeholder:text-neutral-600 focus:border-indigo-500 focus:outline-none"
+          className="min-w-0 flex-1 rounded border border-neutral-800 bg-neutral-900 px-2 py-1.5 font-mono text-xs text-neutral-200 placeholder:text-neutral-600 focus:border-indigo-500 focus:outline-none"
         />
         <button
           type="button"
           aria-label="Toggle reveal"
           onClick={() => setReveal((r) => !r)}
-          className="flex h-7 w-7 items-center justify-center rounded border border-neutral-800 text-neutral-500 hover:text-neutral-200"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-neutral-800 text-neutral-500 hover:text-neutral-200"
         >
           {reveal ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
         </button>
@@ -176,7 +177,7 @@ function ApiKeyField({
           type="button"
           disabled={!dirty}
           onClick={() => void onSave(draft)}
-          className="flex h-7 w-7 items-center justify-center rounded bg-indigo-600 text-white disabled:opacity-30"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-indigo-600 text-white disabled:opacity-30"
           aria-label="Save"
         >
           <Save className="h-3.5 w-3.5" />

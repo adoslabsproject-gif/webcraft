@@ -19,7 +19,14 @@ export function useMonacoMarkers() {
       /Failed to load schema/i.test(msg);
 
     const update = () => {
-      const markers = monaco.editor.getModelMarkers({}).filter((m) => !isNoise(m.message));
+      // Only markers from real files on disk (scheme 'file'). Monaco also
+      // holds models for virtual documents — tool-library snippet previews
+      // (webcraft://tool-library/*), untitled buffers — whose diagnostics
+      // are not the user's project problems and whose paths don't exist on
+      // the filesystem (clicking them would fail with "No such file").
+      const markers = monaco.editor
+        .getModelMarkers({})
+        .filter((m) => m.resource.scheme === 'file' && !isNoise(m.message));
       setProblems(
         markers.map((m, i) => ({
           id: `${m.resource.path}:${m.startLineNumber}:${m.startColumn}:${i}`,
