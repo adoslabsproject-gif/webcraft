@@ -41,7 +41,7 @@ Query, design and browse **SQLite · DuckDB · LibSQL · MongoDB · Redis** — 
 One-click dev-servers: **Node · Bun · Deno · Go · PHP · Python · Ruby** + static — uses the runtimes on your PATH.
 
 **🔓 No cloud lock-in**
-Provider-agnostic routing — **Anthropic · NHA/Liara (free tier)** today, OpenAI & OpenRouter on the roadmap. Keys stay on your machine and never touch the repo (OS-keychain storage planned).
+Provider-agnostic routing — **Anthropic · OpenAI · OpenRouter · DeepSeek · Grok · Gemini**, bring your own key. Keys stay on your machine and never touch the repo (OS-keychain storage planned).
 
 </td>
 </tr>
@@ -53,7 +53,7 @@ It touches your **real filesystem, real language servers, real git repo**.
 
 ## ✦ Highlights
 
-> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **real LSP** &nbsp;·&nbsp; 🔎 **semantic `@codebase` search** &nbsp;·&nbsp; 🗄️ **5-engine DB Studio** &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🗺️ **plan mode + task tracker** &nbsp;·&nbsp; 🔌 **MCP + skills**
+> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **real LSP** &nbsp;·&nbsp; 🔎 **semantic `@codebase` search** &nbsp;·&nbsp; 🗄️ **5-engine DB Studio** &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🎙️ **local whisper dictation** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🗺️ **plan mode + task tracker** &nbsp;·&nbsp; 🔌 **MCP + skills**
 
 ---
 
@@ -69,9 +69,9 @@ flowchart LR
     R -->|60 tools| AR["provider router"]
     AR --> P{{"LLM provider"}}
     P --- A["Anthropic"]
-    P --- L["NHA / Liara<br/>(free tier)"]
-    P --- O["OpenAI<br/>(planned)"]
-    P --- OR["OpenRouter<br/>(planned)"]
+    P --- O["OpenAI"]
+    P --- OR["OpenRouter"]
+    P --- M["DeepSeek · Grok<br/>· Gemini"]
     S --> LSP["language servers"]
     S --> DB[("SQLite · DuckDB · LibSQL<br/>MongoDB · Redis")]
     S --> RAG["embedding index"]
@@ -167,7 +167,7 @@ pnpm build               # build all packages + desktop bundle
 
 ## ✦ Status
 
-<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, LSP, semantic search, DB Studio UI, dev-servers, diff stream, git. Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: DB driver wiring, OpenAI/OpenRouter providers, OS-keychain secrets, screenshots. Issues and PRs welcome.</samp>
+<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 6 LLM providers, semantic search, DB Studio UI, dev-servers, diff stream, git, offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: DB driver wiring, LSP-backed refactoring tools, OS-keychain secrets, screenshots. Issues and PRs welcome.</samp>
 
 <div align="center">
 
