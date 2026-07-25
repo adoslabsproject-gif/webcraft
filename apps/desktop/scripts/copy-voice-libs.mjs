@@ -42,9 +42,18 @@ function findLibs(roots, matcher) {
           continue;
         walk(full, depth + 1);
       } else if (matcher(entry.name)) {
-        const mtime = statSync(full).mtimeMs;
+        // Regular files only: sherpa's layouts include same-named symlinks
+        // pointing at directories, and broken symlinks — both must be
+        // skipped or the copy blows up.
+        let st;
+        try {
+          st = statSync(full);
+        } catch {
+          continue;
+        }
+        if (!st.isFile()) continue;
         const prev = byName.get(entry.name);
-        if (!prev || mtime > prev.mtime) byName.set(entry.name, { path: full, mtime });
+        if (!prev || st.mtimeMs > prev.mtime) byName.set(entry.name, { path: full, mtime: st.mtimeMs });
       }
     }
   };

@@ -113,6 +113,10 @@ jobs:
         if: matrix.platform == 'macos-latest'
         working-directory: apps/desktop
         run: |
+          # A restored rust-cache skips the sherpa-rs-sys build script, but
+          # its downloaded native package lives OUTSIDE the cache — force the
+          # script to re-run so the libs are re-downloaded on fresh runners.
+          cargo clean --manifest-path src-tauri/Cargo.toml -p sherpa-rs-sys
           mv src-tauri/tauri.macos.conf.json src-tauri/_mac.conf.bak
           pnpm tauri build ${{ matrix.args }} --no-bundle
           node scripts/copy-voice-libs.mjs
@@ -125,7 +129,10 @@ jobs:
           # Phase 1: compiling makes sherpa-rs download its .so files into
           # ~/.cache/sherpa-rs. Phase 2 (tauri-action below) bundles with
           # that dir on LD_LIBRARY_PATH so ldd resolves the libs and
-          # linuxdeploy embeds them into the AppImage.
+          # linuxdeploy embeds them into the AppImage. cargo clean forces the
+          # sherpa-rs-sys build script to re-run (its download cache is not
+          # part of rust-cache).
+          cargo clean --manifest-path src-tauri/Cargo.toml -p sherpa-rs-sys
           pnpm tauri build --no-bundle
           SHERPA_SO=$(find ~/.cache/sherpa-rs src-tauri/target -name 'libsherpa-onnx-c-api.so' 2>/dev/null | head -1)
           if [ -z "$SHERPA_SO" ]; then echo "::error::libsherpa-onnx-c-api.so not found after build"; exit 1; fi
@@ -138,6 +145,10 @@ jobs:
         shell: pwsh
         working-directory: apps/desktop
         run: |
+          # Force sherpa-rs-sys to re-download its native package (see the
+          # macOS step) — with a restored rust-cache the .lib/.dll files are
+          # otherwise missing on the fresh runner (LNK1181).
+          cargo clean --manifest-path src-tauri/Cargo.toml -p sherpa-rs-sys
           Move-Item src-tauri/tauri.windows.conf.json src-tauri/_win.conf.bak -Force
           pnpm tauri build --no-bundle
           node scripts/copy-voice-libs.mjs
