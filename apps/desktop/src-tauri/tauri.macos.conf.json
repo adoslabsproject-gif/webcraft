@@ -3,9 +3,7 @@
     "macOS": {
       "frameworks": [
         "frameworks-mac/libonnxruntime.1.17.1.dylib",
-        "frameworks-mac/libonnxruntime.dylib",
-        "frameworks-mac/libsherpa-onnx-c-api.dylib",
-        "frameworks-mac/libsherpa-onnx-cxx-api.dylib"
+        "frameworks-mac/libsherpa-onnx-c-api.dylib"
       ]
     }
   }

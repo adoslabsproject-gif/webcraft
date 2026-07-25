@@ -66,27 +66,41 @@ function stage(destDir, libs) {
   for (const [name, { path }] of libs) {
     const dest = join(destDir, name);
     // Idempotent re-runs: the script executes both as a pre-build step and
-    // as beforeBundleCommand. Remove any previous copy first and always
-    // dereference — some of these libs are symlinks (libonnxruntime.dylib →
-    // libonnxruntime.1.17.1.dylib) and re-copying a symlink over its own
-    // staged resolution throws "src and dest cannot be the same".
+    // as beforeBundleCommand — pre-delete and dereference. Copies are
+    // best-effort per file: sherpa's target layouts have produced exotic
+    // same-named entries (symlinks to dirs, etc.); a bad candidate must not
+    // sink the whole staging when a good copy of the lib exists elsewhere.
     if (resolve(path) === resolve(dest)) continue;
-    rmSync(dest, { force: true });
-    cpSync(path, dest, { dereference: true });
-    console.log(`voice-libs: staged ${name} <- ${path}`);
+    try {
+      rmSync(dest, { force: true });
+      cpSync(path, dest, { dereference: true });
+      console.log(`voice-libs: staged ${name} <- ${path}`);
+    } catch (e) {
+      console.warn(`voice-libs: skipped ${path}: ${e.message}`);
+    }
+  }
+}
+
+/// Fail loudly if any required library did not make it into destDir.
+function assertStaged(destDir, required) {
+  const missing = required.filter((name) => !existsSync(join(destDir, name)));
+  if (missing.length > 0) {
+    console.error(`voice-libs: REQUIRED libs missing from ${destDir}: ${missing.join(', ')}`);
+    process.exit(1);
   }
 }
 
 if (process.platform === 'darwin') {
-  const libs = findLibs(
-    [join(srcTauri, 'target')],
-    (n) => n.endsWith('.dylib') && (n.includes('sherpa') || n.includes('onnxruntime')),
-  );
-  if (libs.size === 0) {
-    console.error('voice-libs: NO sherpa/onnxruntime dylibs found under src-tauri/target — the app would crash at launch');
-    process.exit(1);
-  }
-  stage(join(srcTauri, 'frameworks-mac'), libs);
+  // Exactly the dylibs the binary links (checked with otool -L): the main
+  // executable needs libonnxruntime.1.17.1.dylib + libsherpa-onnx-c-api.
+  // dylib, and the c-api's own dependency is the versioned onnxruntime.
+  // The unversioned/cxx variants are junk in some layouts (even same-named
+  // directories) — never pick them up.
+  const REQUIRED = ['libonnxruntime.1.17.1.dylib', 'libsherpa-onnx-c-api.dylib'];
+  const libs = findLibs([join(srcTauri, 'target')], (n) => REQUIRED.includes(n));
+  const dest = join(srcTauri, 'frameworks-mac');
+  stage(dest, libs);
+  assertStaged(dest, REQUIRED);
 } else if (process.platform === 'win32') {
   const libs = findLibs(
     [join(srcTauri, 'target'), join(process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'), 'sherpa-rs')],
