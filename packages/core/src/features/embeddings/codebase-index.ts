@@ -111,10 +111,16 @@ class CodebaseIndex {
     return this.indexedRoot === root && this.chunks.length > 0;
   }
 
+  /// True after the first failed embeddings call of a build — the remaining
+  /// batches skip the sidecar entirely so a missing/dead sidecar can never
+  /// stretch indexing out (search degrades to grep-only mode).
+  private sidecarDown = false;
+
   async build(root: string): Promise<void> {
     if (this.inflight && this.indexedRoot === root) return this.inflight;
     this.indexedRoot = root;
     this.chunks = [];
+    this.sidecarDown = false;
     this.progress = { files: 0, chunks: 0, done: false };
     this.emit();
     const task = (async () => {
@@ -149,6 +155,7 @@ class CodebaseIndex {
   }
 
   private async encodeAndAppend(batch: Omit<Chunk, 'vector'>[]): Promise<void> {
+    if (this.sidecarDown) return;
     for (let i = 0; i < batch.length; i += BATCH_SIZE) {
       const slice = batch.slice(i, i + BATCH_SIZE);
       try {
@@ -163,6 +170,7 @@ class CodebaseIndex {
         this.emit();
       } catch {
         /* sidecar offline — skip silently, fall back to grep-only mode */
+        this.sidecarDown = true;
         return;
       }
     }

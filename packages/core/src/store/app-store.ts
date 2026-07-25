@@ -65,6 +65,10 @@ interface AppState {
   /// AI" / welcome prompt cards BEFORE the chat tab mounts; MessageInput
   /// consumes and clears it on mount (a window event would race the mount).
   chatPrefill: string | null;
+  /// Whole-project scan results (tsc --noEmit) — separate from the live
+  /// Monaco markers in `problems` so an editor keystroke doesn't wipe the
+  /// scan and vice versa. ProblemsPanel merges the two.
+  scanProblems: Problem[];
   setActivityPanel: (panel: ActivityPanel) => void;
   setBottomTab: (tab: BottomTab) => void;
   toggleBottomPanel: () => void;
@@ -82,6 +86,7 @@ interface AppState {
   setProjectRoot: (root: string | null) => void;
   setProblems: (problems: Problem[]) => void;
   setChatPrefill: (text: string | null) => void;
+  setScanProblems: (problems: Problem[]) => void;
   /** Open the singleton DB Studio tab in the editor area (or focus it if already open). */
   openDbStudioTab: () => void;
   /** Open the singleton AI Chat tab. */
@@ -106,6 +111,7 @@ export const useAppStore = create<AppState>((set) => ({
   projectRoot: null,
   problems: [],
   chatPrefill: null,
+  scanProblems: [],
   setActivityPanel: (panel: ActivityPanel) => set({ activityPanel: panel }),
   setBottomTab: (tab: BottomTab) => set({ bottomTab: tab, bottomPanelOpen: true }),
   toggleBottomPanel: () => set((s: AppState) => ({ bottomPanelOpen: !s.bottomPanelOpen })),
@@ -117,6 +123,7 @@ export const useAppStore = create<AppState>((set) => ({
   notifyFsChange: () => set((s: AppState) => ({ fsChangeCounter: s.fsChangeCounter + 1 })),
   setProblems: (problems: Problem[]) => set({ problems }),
   setChatPrefill: (text: string | null) => set({ chatPrefill: text }),
+  setScanProblems: (scanProblems: Problem[]) => set({ scanProblems }),
   openEditorTab: (tab: EditorTab) =>
     set((s: AppState) => {
       if (s.editorTabs.some((t) => t.id === tab.id)) {

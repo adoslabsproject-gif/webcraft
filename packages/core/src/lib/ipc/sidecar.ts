@@ -10,9 +10,19 @@ import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 /// ready). We poll up to ~5s on first use.
 
 let cachedPort: number | null = null;
+/// Negative cache: after a failed discovery every caller must fail FAST for
+/// a cooldown window instead of re-polling 5s each. Without this, features
+/// that issue many sidecar calls (codebase indexing batches) each burned the
+/// full 5s poll when the sidecar was missing — hundreds of batches turned
+/// into an endless "Indexing…" spinner.
+let unavailableUntil = 0;
+const RETRY_COOLDOWN_MS = 60_000;
 
 async function discoverPort(): Promise<number> {
   if (cachedPort && cachedPort > 0) return cachedPort;
+  if (Date.now() < unavailableUntil) {
+    throw new Error('Sidecar unavailable (cooldown)');
+  }
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     const p = await invoke<number>('webcraft_sidecar_port');
@@ -22,6 +32,7 @@ async function discoverPort(): Promise<number> {
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+  unavailableUntil = Date.now() + RETRY_COOLDOWN_MS;
   throw new Error('Sidecar did not become ready within 5s');
 }
 

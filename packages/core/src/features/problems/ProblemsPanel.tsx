@@ -6,6 +6,7 @@ import {
   Copy,
   CopyCheck,
   Info,
+  RefreshCw,
   Sparkles,
   Wrench,
 } from 'lucide-react';
@@ -13,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppStore, type Problem } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
 import { revealLocation } from '../editor/editor-controller';
+import { scanProject } from './project-scan';
 
 /// Problems panel — diagnostics with per-issue Copy / How-to-fix / AI-fix
 /// actions and a bulk "Copy all" in the header. Messages are selectable
@@ -23,11 +25,39 @@ import { revealLocation } from '../editor/editor-controller';
 /// the full, untruncated detail. Right-click opens a context menu with
 /// "Copy problem" / "Copy all problems".
 export function ProblemsPanel() {
-  const problems = useAppStore((s) => s.problems);
+  const liveProblems = useAppStore((s) => s.problems);
+  const scanProblems = useAppStore((s) => s.scanProblems);
+  const setScanProblems = useAppStore((s) => s.setScanProblems);
+  const projectRoot = useAppStore((s) => s.projectRoot);
   const openTab = useAppStore((s) => s.openEditorTab);
   const openChatTab = useAppStore((s) => s.openChatTab);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanFailure, setScanFailure] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; problem: Problem } | null>(null);
+
+  // Live Monaco markers (open files) + whole-project scan, deduped by
+  // position: the live marker wins because it tracks unsaved edits.
+  const liveKeys = new Set(liveProblems.map((p) => `${p.path}:${p.line}:${p.column}`));
+  const problems = [
+    ...liveProblems,
+    ...scanProblems.filter((p) => !liveKeys.has(`${p.path}:${p.line}:${p.column}`)),
+  ];
+
+  async function runScan() {
+    if (!projectRoot || scanning) return;
+    setScanning(true);
+    setScanFailure(null);
+    try {
+      const result = await scanProject(projectRoot);
+      setScanProblems(result.problems);
+      setScanFailure(result.failure);
+    } catch (e) {
+      setScanFailure(String(e));
+    } finally {
+      setScanning(false);
+    }
+  }
 
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.filter((p) => p.severity === 'warning').length;
@@ -42,11 +72,33 @@ export function ProblemsPanel() {
     setTimeout(() => setCopiedAll(false), 1500);
   }
 
+  const scanButton = (
+    <button
+      type="button"
+      onClick={() => void runScan()}
+      disabled={!projectRoot || scanning}
+      title="Run tsc --noEmit on the whole project"
+      className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-hover)] disabled:opacity-40"
+    >
+      <RefreshCw className={`h-3 w-3 ${scanning ? 'animate-spin' : ''}`} />
+      {scanning ? 'Scanning…' : 'Scan project'}
+    </button>
+  );
+
   if (problems.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-fg-dim)]">
         <CheckCircle2 className="h-8 w-8 text-[var(--color-success)]" />
-        <p className="text-xs">No problems detected.</p>
+        <p className="text-xs">
+          No problems in open files. Open files are checked live; the whole project is checked on
+          demand.
+        </p>
+        {scanButton}
+        {scanFailure ? (
+          <p className="max-w-md select-text text-center text-[10px] text-[var(--color-warning)]">
+            {scanFailure}
+          </p>
+        ) : null}
       </div>
     );
   }
@@ -64,24 +116,32 @@ export function ProblemsPanel() {
             {warningCount} warning{warningCount === 1 ? '' : 's'}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={() => void copyAll()}
-          className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-hover)]"
-        >
-          {copiedAll ? (
-            <>
-              <Check className="h-3 w-3 text-[var(--color-success)]" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="h-3 w-3" />
-              Copy all
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-1.5">
+          {scanButton}
+          <button
+            type="button"
+            onClick={() => void copyAll()}
+            className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-hover)]"
+          >
+            {copiedAll ? (
+              <>
+                <Check className="h-3 w-3 text-[var(--color-success)]" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                Copy all
+              </>
+            )}
+          </button>
+        </div>
       </div>
+      {scanFailure ? (
+        <div className="select-text border-b border-[var(--color-warning)]/30 bg-[var(--color-warning-muted)] px-3 py-1 text-[10px] text-[var(--color-warning)]">
+          {scanFailure}
+        </div>
+      ) : null}
       <ul className="flex-1 divide-y divide-[var(--color-border-subtle)] overflow-y-auto">
         {problems.map((p) => (
           <ProblemRow
