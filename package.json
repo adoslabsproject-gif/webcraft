@@ -2,7 +2,7 @@
   "name": "webcraft",
   "version": "0.1.0",
   "private": true,
-  "description": "WebCraft — the most advanced AI IDE ever made. Tauri 2 + Node sidecar, multi-language LSP, embedded DBs (PGLite/SQLite/Mongo/MySQL/Redis/DuckDB), bundled dev-server runtimes (Node/PHP/Python/Deno/Bun/Ruby/Go). Claude Code with UI.",
+  "description": "WebCraft — the most advanced AI IDE ever made. Tauri 2 + Node sidecar, multi-language LSP, DB Studio (SQLite/DuckDB/LibSQL/Mongo/Redis), one-click dev-server runtimes (Node/PHP/Python/Deno/Bun/Ruby/Go + static). Claude Code with UI.",
   "type": "module",
   "license": "MIT",
   "author": {

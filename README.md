@@ -32,16 +32,16 @@ Most AI coding agents live in the terminal. **WebCraft is a real desktop IDE** w
 Monaco editor · LSP hover / go-to-def / diagnostics · command palette · integrated PTY terminal · git sidebar · live red/green diff stream.
 
 **🗄️ Database studio, built in**
-Query, design and browse **SQLite · DuckDB · LibSQL · MongoDB · Redis** — embedded, zero installer.
+Query, design and browse **SQLite · DuckDB · LibSQL · MongoDB · Redis** — studio UI is live, driver wiring lands next.
 
 </td>
 <td width="50%" valign="top">
 
 **▶️ Runs what it builds**
-Bundled dev-servers: **Node · Bun · Deno · Go · PHP** — no PATH wrangling.
+One-click dev-servers: **Node · Bun · Deno · Go · PHP · Python · Ruby** + static — uses the runtimes on your PATH.
 
 **🔓 No cloud lock-in**
-Provider-agnostic routing — **Anthropic · OpenAI · OpenRouter · NHA/Liara (free tier)**. Keys live in the OS keychain, never in files or the repo.
+Provider-agnostic routing — **Anthropic · NHA/Liara (free tier)** today, OpenAI & OpenRouter on the roadmap. Keys stay on your machine and never touch the repo (OS-keychain storage planned).
 
 </td>
 </tr>
@@ -53,7 +53,7 @@ It touches your **real filesystem, real language servers, real git repo**.
 
 ## ✦ Highlights
 
-> 🧠 **~55 agent tools** &nbsp;·&nbsp; ✍️ **real LSP** &nbsp;·&nbsp; 🔎 **semantic `@codebase` search** &nbsp;·&nbsp; 🗄️ **5-engine DB Studio** &nbsp;·&nbsp; ▶️ **5 dev-server runtimes** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🗺️ **plan mode + task tracker** &nbsp;·&nbsp; 🔌 **MCP + skills**
+> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **real LSP** &nbsp;·&nbsp; 🔎 **semantic `@codebase` search** &nbsp;·&nbsp; 🗄️ **5-engine DB Studio** &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🗺️ **plan mode + task tracker** &nbsp;·&nbsp; 🔌 **MCP + skills**
 
 ---
 
@@ -64,14 +64,14 @@ flowchart LR
     U([👩‍💻 You]) -->|prompt| R
     subgraph DESKTOP["🖥️ Tauri 2 desktop"]
       R["React 19 renderer<br/>Monaco · chat · diff · DB Studio"]
-      R <-->|tRPC / zod over Tauri channels| S["Node sidecar<br/>lsp · rag · db · mcp"]
+      R <-->|JSON over loopback HTTP + Tauri IPC| S["Node sidecar<br/>lsp · rag · db · mcp"]
     end
-    R -->|~55 tools| AR["ai-router"]
+    R -->|60 tools| AR["provider router"]
     AR --> P{{"LLM provider"}}
     P --- A["Anthropic"]
-    P --- O["OpenAI"]
-    P --- OR["OpenRouter"]
     P --- L["NHA / Liara<br/>(free tier)"]
+    P --- O["OpenAI<br/>(planned)"]
+    P --- OR["OpenRouter<br/>(planned)"]
     S --> LSP["language servers"]
     S --> DB[("SQLite · DuckDB · LibSQL<br/>MongoDB · Redis")]
     S --> RAG["embedding index"]
@@ -86,7 +86,7 @@ flowchart LR
 ### 🖥️ The IDE
 `Monaco editor` · `command palette` · `code lens` · `integrated terminal (PTY)` · `file tree` · `project-wide search` · `symbol outline` · `Problems panel` · `diff viewer` · `snippets` · `tool library`
 
-### 🤖 The agent — ~55 tools
+### 🤖 The agent — 60 tools
 
 <details open>
 <summary><b>Show the full tool set</b></summary>
@@ -95,7 +95,7 @@ flowchart LR
 
 | Group | Tools |
 |------|------|
-| **📁 Files** | `read_file` · `write_file` · `edit_file` · `multi_edit` · `apply_patch` · `create_dir` · `move_file` · `copy_file` · `delete_file` · `get_file_stat` · `list_directory` · `glob` · `grep` · `notebook_edit` |
+| **📁 Files** | `read_file` · `write_file` · `edit_file` · `multi_edit` · `apply_patch` · `create_dir` · `move_file` · `copy_file` · `delete_file` · `get_file_stat` · `list_directory` · `glob` · `grep` · `find_files` · `notebook_edit` |
 | **🧭 Code intelligence (LSP)** | `goto_definition` · `find_references` · `get_symbols` · `rename_symbol` · `format_file` · `get_imports` |
 | **🩺 Diagnostics & run** | `get_diagnostics` · `lint_file` · `type_check` · `run_test` · `run_build` · `run_command` |
 | **🔎 Semantic** | `semantic_search` (`@codebase`) |
@@ -119,8 +119,8 @@ packages/
                          git, db-studio, dev-server, embeddings index,
                          command-palette, code-lens, outline, problems, tasks, settings
   server/                Node sidecar — modules/{lsp, rag, db, mcp}
-  ai-tools/              Tool definitions
-  ai-router/             LLM provider abstraction
+  ai-tools/              Tool definitions (scaffold — tools currently live in core/src/lib/ai)
+  ai-router/             LLM provider abstraction (scaffold — routing currently in core)
   shared/                Types, zod schemas, IPC contracts
   design-system/         Radix-based components
 ```
@@ -128,30 +128,46 @@ packages/
 <table>
 <tr><th>Layer</th><th>Choice</th><th>Layer</th><th>Choice</th></tr>
 <tr><td>Desktop shell</td><td>Tauri 2 (Rust)</td><td>State</td><td>Zustand 5</td></tr>
-<tr><td>Node sidecar</td><td>Node 22 + ESM</td><td>IPC</td><td>tRPC v11</td></tr>
+<tr><td>Node sidecar</td><td>Node 22 + ESM</td><td>IPC</td><td>JSON over loopback HTTP + Tauri IPC</td></tr>
 <tr><td>Frontend</td><td>React 19 + Vite</td><td>Monorepo</td><td>Nx + pnpm</td></tr>
-<tr><td>Editor</td><td>Monaco</td><td>Tests</td><td>Vitest 3</td></tr>
+<tr><td>Editor</td><td>Monaco</td><td>CI / Release</td><td>GitHub Actions + tauri-action</td></tr>
 <tr><td>Styling</td><td>Tailwind CSS 4</td><td>Lint/format</td><td>Biome 2</td></tr>
-<tr><td>Components</td><td>Radix + Lucide</td><td>Secrets</td><td>@napi-rs/keyring</td></tr>
+<tr><td>Components</td><td>Radix + Lucide</td><td>Secrets</td><td>Local store (OS keychain planned)</td></tr>
 </table>
+
+---
+
+## ✦ Download
+
+Installers for every platform are on the **[Releases page](https://github.com/adoslabsproject-gif/webcraft/releases/latest)**:
+
+| Platform | File |
+|----------|------|
+| 🍎 macOS (Apple Silicon / Intel) | `WebCraft_x.y.z_aarch64.dmg` / `WebCraft_x.y.z_x64.dmg` |
+| 🪟 Windows | `WebCraft_x.y.z_x64-setup.exe` (or `.msi`) |
+| 🐧 Linux | `.AppImage` · `.deb` · `.rpm` |
+
+> Builds are not yet code-signed: on macOS use right-click → *Open* the first time; on Windows accept the SmartScreen prompt.
 
 ---
 
 ## ✦ Develop
 
+Requires **Rust (stable)**, **Node ≥ 22** and **pnpm ≥ 9**.
+
 ```bash
 git clone https://github.com/adoslabsproject-gif/webcraft.git
 cd webcraft
-npm install
-npm run build:cli        # sidecar / core build
-npm run desktop:dev      # Tauri dev window  (requires Rust + Node ≥ 20)
+pnpm install
+pnpm dev                 # Tauri dev window (nx run desktop:dev)
+pnpm build               # build all packages + desktop bundle
 ```
 
 ---
 
 ## ✦ Status
 
-<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + ~55 tools, LSP, semantic search, DB Studio, dev-servers, diff stream, git. Screenshots and packaged installers are coming. Issues and PRs welcome.</samp>
+<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, LSP, semantic search, DB Studio UI, dev-servers, diff stream, git. Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: DB driver wiring, OpenAI/OpenRouter providers, OS-keychain secrets, screenshots. Issues and PRs welcome.</samp>
 
 <div align="center">
 
