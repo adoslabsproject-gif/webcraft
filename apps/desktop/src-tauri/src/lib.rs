@@ -8,6 +8,7 @@
 mod fs_ops;
 mod menu;
 mod pty;
+mod secrets;
 mod sidecar;
 mod voice;
 
@@ -16,6 +17,7 @@ use fs_ops::{
     webcraft_rename, webcraft_write_file,
 };
 use pty::{pty_input, pty_kill, pty_resize, pty_spawn, PtyState};
+use secrets::{secret_delete, secret_get, secret_set};
 use sidecar::{webcraft_sidecar_port, SidecarState};
 use tauri::Manager;
 use voice::{voice_start, voice_stop_transcribe, voice_stt_download, voice_stt_present, VoiceState};
@@ -57,6 +59,9 @@ pub fn run() {
             voice_stt_download,
             voice_start,
             voice_stop_transcribe,
+            secret_get,
+            secret_set,
+            secret_delete,
         ])
         .setup(|app| {
             menu::install(app.handle())?;

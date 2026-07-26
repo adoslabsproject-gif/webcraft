@@ -41,7 +41,7 @@ Query, design and browse **SQLite · DuckDB · LibSQL · MongoDB · Redis** — 
 One-click dev-servers: **Node · Bun · Deno · Go · PHP · Python · Ruby** + static — uses the runtimes on your PATH.
 
 **🔓 No cloud lock-in**
-Provider-agnostic routing — **Anthropic · OpenAI · OpenRouter · DeepSeek · Grok · Gemini**, bring your own key. Keys stay on your machine and never touch the repo (OS-keychain storage planned).
+Provider-agnostic routing — **Claude Code (local, subscription) · Anthropic · OpenAI · OpenRouter · DeepSeek · Grok · Gemini**. API keys live in the **OS keychain** (Keychain / Credential Manager / Secret Service), never on disk in plaintext.
 
 </td>
 </tr>
@@ -132,7 +132,7 @@ packages/
 <tr><td>Frontend</td><td>React 19 + Vite</td><td>Monorepo</td><td>Nx + pnpm</td></tr>
 <tr><td>Editor</td><td>Monaco</td><td>CI / Release</td><td>GitHub Actions + tauri-action</td></tr>
 <tr><td>Styling</td><td>Tailwind CSS 4</td><td>Lint/format</td><td>Biome 2</td></tr>
-<tr><td>Components</td><td>Radix + Lucide</td><td>Secrets</td><td>Local store (OS keychain planned)</td></tr>
+<tr><td>Components</td><td>Radix + Lucide</td><td>Secrets</td><td>OS keychain (keyring)</td></tr>
 </table>
 
 ---

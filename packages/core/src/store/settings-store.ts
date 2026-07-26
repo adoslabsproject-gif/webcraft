@@ -1,15 +1,16 @@
+import { invoke } from '@tauri-apps/api/core';
 import { Store } from '@tauri-apps/plugin-store';
 import { create } from 'zustand';
 
-/// Persistent settings store backed by tauri-plugin-store.
+/// Persistent settings store.
 ///
-/// Holds API keys for each LLM provider, the active provider/model, theme
-/// and editor preferences. The Tauri store writes to a JSON file in the
-/// app's local data dir (encrypted at rest by the OS file permissions).
-///
-/// Note: this is a transitional storage. The real secret store is the OS
-/// keychain via @napi-rs/keyring — wired through the Node sidecar — and
-/// will replace this for `apiKeys` once the sidecar is online.
+/// Non-secret preferences (provider, model, theme, …) live in
+/// tauri-plugin-store (settings.json). API KEYS live in the OS KEYCHAIN
+/// (macOS Keychain / Windows Credential Manager / Linux Secret Service)
+/// via the Rust `secret_*` commands — they are held in memory for the
+/// session and NEVER written to disk unencrypted. Plaintext keys saved by
+/// older versions migrate into the keychain on first load and are wiped
+/// from settings.json.
 
 export type Provider =
   | 'claude-code'
@@ -105,13 +106,33 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   async load() {
     if (get().loaded) return;
     const store = await getStore();
-    // Merge persisted keys over the full provider set so settings saved by
-    // older versions (fewer providers, or the removed 'nha' tier) load
-    // cleanly: unknown stored keys are dropped, missing ones default to ''.
-    const storedKeys = (await store.get<Record<string, string>>('apiKeys')) ?? {};
     const apiKeys = { ...EMPTY_KEYS };
+    // MIGRATION: plaintext keys from older versions move into the OS
+    // keychain, then get wiped from settings.json — one way, once.
+    const legacyKeys = (await store.get<Record<string, string>>('apiKeys')) ?? null;
+    if (legacyKeys && Object.values(legacyKeys).some((v) => v)) {
+      for (const provider of Object.keys(apiKeys) as Provider[]) {
+        const value = legacyKeys[provider];
+        if (typeof value === 'string' && value) {
+          try {
+            await invoke('secret_set', { key: `apikey.${provider}`, value });
+          } catch {
+            /* keychain locked/unavailable — keep the key in memory below */
+          }
+          apiKeys[provider] = value;
+        }
+      }
+      await store.delete('apiKeys');
+    }
+    // Normal path: read each key from the keychain.
     for (const provider of Object.keys(apiKeys) as Provider[]) {
-      if (typeof storedKeys[provider] === 'string') apiKeys[provider] = storedKeys[provider];
+      if (apiKeys[provider]) continue; // just migrated
+      try {
+        const value = await invoke<string | null>('secret_get', { key: `apikey.${provider}` });
+        if (value) apiKeys[provider] = value;
+      } catch {
+        /* keychain unavailable — provider will show as key-less */
+      }
     }
     const storedProvider = (await store.get<string>('activeProvider')) ?? 'anthropic';
     const activeProvider: Provider =
@@ -141,8 +162,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   async setApiKey(provider, key) {
     const apiKeys = { ...get().apiKeys, [provider]: key };
     set({ apiKeys });
-    const store = await getStore();
-    await store.set('apiKeys', apiKeys);
+    // Keychain only — never settings.json.
+    if (key) {
+      await invoke('secret_set', { key: `apikey.${provider}`, value: key });
+    } else {
+      await invoke('secret_delete', { key: `apikey.${provider}` });
+    }
   },
 
   async setActiveProvider(provider) {

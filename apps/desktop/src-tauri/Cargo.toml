@@ -29,6 +29,9 @@ portable-pty = "0.9"
 # Same stack as the Liara app; model downloaded on-demand from GitHub.
 sherpa-rs = { version = "0.6", features = ["download-binaries"] }
 cpal = "0.15"
+# OS keychain for API keys (macOS Keychain / Windows Credential Manager /
+# Linux Secret Service) — replaces plaintext settings.json storage.
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service"] }
 # STT model download: blocking HTTP + sha256 verify + zip extract (deflate
 # only — no bzip2/zstd native deps).
 ureq = "2"
