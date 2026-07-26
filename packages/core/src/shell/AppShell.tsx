@@ -16,6 +16,7 @@ import { ErrorBoundary } from '../lib/ErrorBoundary';
 import { codebaseIndex } from '../features/embeddings/codebase-index';
 import { initScheduler } from '../lib/ai/scheduler';
 import { initAutoScan } from '../features/problems/auto-scan';
+import { initChatPersistence } from '../features/chat/chat-persistence';
 import { useAppStore } from '../store/app-store';
 
 /// Top-level app layout — VSCode/Cursor inspired 3-pane:
@@ -63,6 +64,12 @@ export function AppShell() {
   // (debounced) after every save / agent edit.
   useEffect(() => {
     initAutoScan();
+  }, []);
+
+  // Conversation persistence: restore the project's transcript on boot,
+  // save (debounced) on every chat change, swap on project switch.
+  useEffect(() => {
+    initChatPersistence();
   }, []);
 
   // ⌘B → toggle sidebar (VSCode parity).

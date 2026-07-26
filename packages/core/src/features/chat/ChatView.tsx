@@ -3,15 +3,17 @@ import {
   Bot,
   Maximize2,
   MessageSquare,
+  MessageSquarePlus,
   PanelRightClose,
   PanelRightOpen,
   Settings as SettingsIcon,
   Sparkles,
 } from 'lucide-react';
 import { useEffect } from 'react';
+import { resetClaudeCodeSession } from '../../lib/ai/claude-code-client';
 import { CHAT_TAB_ID, useAppStore } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
-import type { ChatStatus } from './chat-store';
+import { useChatStore, type ChatStatus } from './chat-store';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { useChat } from './use-chat';
@@ -81,6 +83,20 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            disabled={streaming}
+            onClick={() => {
+              useChatStore.getState().reset();
+              // Fresh Claude Code session too — otherwise the CLI would
+              // resume the old context under an empty-looking transcript.
+              resetClaudeCodeSession(useAppStore.getState().projectRoot);
+            }}
+            title="New chat (clears the transcript and starts a fresh session)"
+            className="rounded p-1 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)] disabled:opacity-40"
+          >
+            <MessageSquarePlus className="h-3 w-3" />
+          </button>
           {compact ? (
             <button
               type="button"
