@@ -113,16 +113,15 @@ flowchart LR
 ## ✦ Architecture
 
 ```
-apps/desktop/            Tauri 2 (Rust core) + React 19 renderer
+apps/desktop/            Tauri 2 (Rust core: pty, voice, keychain, sidecar spawn)
+                         + React 19 renderer entry
 packages/
-  core/                  Renderer: Monaco editor, chat + diff, file-tree, terminal,
-                         git, db-studio, dev-server, embeddings index,
-                         command-palette, code-lens, outline, problems, tasks, settings
-  server/                Node sidecar — modules/{lsp, rag, db, mcp}
-  ai-tools/              Tool definitions (scaffold — tools currently live in core/src/lib/ai)
-  ai-router/             LLM provider abstraction (scaffold — routing currently in core)
-  shared/                Types, zod schemas, IPC contracts
-  design-system/         Radix-based components
+  core/                  Everything renderer-side: Monaco editor, AI chat +
+                         providers + 60 tools, diff stream, file-tree, terminal,
+                         git, db-studio, dev-server, problems scan, settings
+  server/                Node sidecar — modules/{lsp, rag, db, mcp, agent}
+                         (shipped in the bundle with its prod node_modules)
+  shared/                Cross-package constants
 ```
 
 <table>
@@ -173,7 +172,7 @@ pnpm build               # build all packages + desktop bundle
 
 ## ✦ Status
 
-<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 6 LLM providers, semantic search, DB Studio UI, dev-servers, diff stream, git, offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: DB driver wiring (PGLite works today, sqlite/duckdb/libsql/mongo next), OS-keychain secrets, Windows port of the shell-based tools (dev-servers, project scan — POSIX → PowerShell), bundling Node for the sidecar. Issues and PRs welcome.</samp>
+<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 6 LLM providers, semantic search, DB Studio UI, dev-servers, diff stream, git, offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. Recently closed gaps: real DB drivers shipped in the bundle (sqlite/duckdb/libsql files + redis/mongo servers), OS-keychain secrets, Windows shell layer via Git Bash, bundled Node runtime (the app is fully self-contained). In progress: code signing/notarization, screenshots. Issues and PRs welcome.</samp>
 
 <div align="center">
 

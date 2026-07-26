@@ -482,6 +482,29 @@ const HANDLERS: Record<
     }
     const query = str(c, 'query');
     const k = optInt(c, 'k') ?? 8;
+    // Embedding backend offline → REAL keyword relevance via the sidecar's
+    // TF-IDF index instead of meaningless hash-vector rankings.
+    if (codebaseIndex.degradedVectors) {
+      try {
+        const { sidecarPost } = await import('../ipc/sidecar');
+        await sidecarPost('/rag/index', { root: projectRoot });
+        const { hits } = await sidecarPost<{
+          hits: Array<{ path: string; line: number; chunk: string; score?: number }>;
+        }>('/rag/search', { query, k });
+        if (hits.length > 0) {
+          return ok(
+            `ℹ embedding backend offline — TF-IDF keyword relevance (real, but not semantic):\n\n${hits
+              .map(
+                (h, i) =>
+                  `[${i + 1}] ${h.path}:${h.line}\n${h.chunk.slice(0, 280)}${h.chunk.length > 280 ? '…' : ''}`,
+              )
+              .join('\n\n')}`,
+          );
+        }
+      } catch {
+        /* sidecar down — fall through to the vector index below */
+      }
+    }
     const hits = await codebaseIndex.search(query, k);
     if (hits.length === 0) {
       return ok('(no results — index empty or sidecar embeddings offline; try grep instead)');
@@ -732,6 +755,33 @@ const HANDLERS: Record<
         title: stripHtml(rawTitle),
         snippet: stripHtml(rawSnippet),
       });
+    }
+    // Markup drift / rate-limit fallback: DDG lite is a much simpler page
+    // whose anchor structure has been stable for years.
+    if (results.length === 0) {
+      try {
+        const lite = await tauriFetch(
+          `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(query)}`,
+          { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0 WebCraft' } },
+        );
+        const liteHtml = await lite.text();
+        const liteRe = /<a[^>]*class="result-link"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+        let lm: RegExpExecArray | null;
+        while ((lm = liteRe.exec(liteHtml)) !== null && results.length < max) {
+          results.push({
+            url: decodeURIComponent((lm[1] ?? '').replace(/^\/\/duckduckgo\.com\/l\/\?uddg=/, '')),
+            title: stripHtml(lm[2] ?? ''),
+            snippet: '',
+          });
+        }
+      } catch {
+        /* both endpoints down — fall through to the honest error below */
+      }
+    }
+    if (results.length === 0) {
+      return err(
+        'web_search returned no results — DuckDuckGo may be rate-limiting or changed markup. Try web_fetch on a specific URL instead.',
+      );
     }
     return ok(JSON.stringify(results));
   },

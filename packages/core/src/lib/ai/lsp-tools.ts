@@ -69,19 +69,40 @@ async function lspContext(path: string) {
   return { language, rootUri, uri, text };
 }
 
+/// How to install the language server for each language — appended to
+/// spawn failures so the error is actionable instead of dead-end.
+const LS_INSTALL_HINTS: Record<string, string> = {
+  typescript: 'npm install -g typescript-language-server typescript',
+  typescriptreact: 'npm install -g typescript-language-server typescript',
+  javascript: 'npm install -g typescript-language-server typescript',
+  javascriptreact: 'npm install -g typescript-language-server typescript',
+  python: 'npm install -g pyright',
+  go: 'go install golang.org/x/tools/gopls@latest',
+  rust: 'rustup component add rust-analyzer',
+};
+
 async function withDocument<T>(
   path: string,
   fn: (ctx: { language: string; rootUri: string; uri: string }) => Promise<T>,
 ): Promise<T> {
   const { language, rootUri, uri, text } = await lspContext(path);
-  await sidecarPost('/lsp/notify', {
-    language,
-    rootUri,
-    method: 'textDocument/didOpen',
-    params: {
-      textDocument: { uri, languageId: language, version: 1, text },
-    },
-  });
+  try {
+    await sidecarPost('/lsp/notify', {
+      language,
+      rootUri,
+      method: 'textDocument/didOpen',
+      params: {
+        textDocument: { uri, languageId: language, version: 1, text },
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const hint = LS_INSTALL_HINTS[language];
+    if (hint && /failed to spawn|not found|ENOENT/i.test(msg)) {
+      throw new Error(`Language server for ${language} is not installed. Install it with: ${hint}`);
+    }
+    throw e;
+  }
   try {
     return await fn({ language, rootUri, uri });
   } finally {

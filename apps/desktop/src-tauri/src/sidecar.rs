@@ -64,9 +64,28 @@ fn sidecar_bundle_path() -> Option<std::path::PathBuf> {
     None
 }
 
-/// Find a usable `node` binary. We try PATH first, then common Homebrew /
-/// nvm install paths because Tauri's spawn doesn't inherit shell PATH.
+/// Find a usable `node` binary. The BUNDLED runtime (node-runtime resource)
+/// wins — the app must work on machines without Node installed. System
+/// installs are the fallback for dev builds without the resource.
 fn locate_node() -> Option<String> {
+    // Bundled runtime, relative to the executable (per-platform layouts).
+    let bundled = [
+        "../Resources/node-runtime/node",    // macOS .app
+        "node-runtime/node.exe",             // Windows install dir
+        "node-runtime/node",                 // generic / dev staging
+        "../lib/WebCraft/node-runtime/node", // Linux AppImage
+        "../lib/webcraft/node-runtime/node",
+    ];
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            for c in bundled.iter() {
+                let p = parent.join(c);
+                if p.exists() {
+                    return p.to_str().map(String::from);
+                }
+            }
+        }
+    }
     let candidates = [
         "/opt/homebrew/bin/node",
         "/usr/local/bin/node",
