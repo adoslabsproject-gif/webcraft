@@ -147,7 +147,13 @@ Installers for every platform are on the **[Releases page](https://github.com/ad
 | 🪟 Windows | `WebCraft_x.y.z_x64-setup.exe` (or `.msi`) |
 | 🐧 Linux | `.AppImage` (bundles the voice libraries; deb/rpm will follow) |
 
-> Builds are not yet code-signed: on macOS use right-click → *Open* the first time; on Windows accept the SmartScreen prompt.
+> **Builds are not yet code-signed.**
+> - **macOS** — if you get *"WebCraft is damaged and can't be opened"* (Gatekeeper's message for un-notarized downloads), run:
+>   ```bash
+>   xattr -cr /Applications/WebCraft.app
+>   open /Applications/WebCraft.app
+>   ```
+> - **Windows** — accept the SmartScreen prompt (More info → Run anyway).
 
 ---
 
