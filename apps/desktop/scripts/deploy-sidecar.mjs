@@ -9,7 +9,7 @@
 /// Native modules are compiled per-platform on each CI runner.
 
 import { execSync } from 'node:child_process';
-import { existsSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +26,31 @@ execSync(
   `pnpm --filter @webcraft/server --prod --config.node-linker=hoisted deploy ${JSON.stringify(target)}`,
   { cwd: workspaceRoot, stdio: 'inherit' },
 );
+
+// Symlinks must not survive into the bundle: the macOS resource copier
+// drops them silently and linuxdeploy fails HARD on dangling ones inside
+// the AppDir. node_modules/.bin (all symlinks) is not needed at runtime.
+rmSync(join(target, 'node_modules', '.bin'), { recursive: true, force: true });
+let pruned = 0;
+function pruneSymlinks(dir) {
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    const full = join(dir, e.name);
+    if (e.isSymbolicLink()) {
+      rmSync(full, { force: true });
+      pruned++;
+    } else if (e.isDirectory()) {
+      pruneSymlinks(full);
+    }
+  }
+}
+pruneSymlinks(target);
+if (pruned > 0) console.log(`deploy-sidecar: pruned ${pruned} symlinks`);
 
 const entry = join(target, 'dist', 'sidecar.mjs');
 if (!existsSync(entry)) {
