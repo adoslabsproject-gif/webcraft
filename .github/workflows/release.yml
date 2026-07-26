@@ -152,6 +152,9 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # linuxdeploy strips/patches every ELF it finds in the AppDir and
+          # chokes on the bundled Node binary + native .node modules.
+          NO_STRIP: 'true'
           # macOS code-signing + notarization: once an Apple Developer
           # certificate exists, add the repo secrets APPLE_CERTIFICATE,
           # APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY, APPLE_ID,
