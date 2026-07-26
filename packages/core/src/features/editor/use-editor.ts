@@ -106,9 +106,7 @@ export function useEditor() {
       if (!tab) return;
       const dirty = next !== originalContent;
       if (tab.dirty !== dirty) {
-        const updated = store.editorTabs.map((t) =>
-          t.id === activeId ? { ...t, dirty } : t,
-        );
+        const updated = store.editorTabs.map((t) => (t.id === activeId ? { ...t, dirty } : t));
         useAppStore.setState({ editorTabs: updated });
       }
     },
@@ -142,9 +140,7 @@ export function useEditor() {
     await writeFile(active.path, content);
     setOriginalContent(content);
     const store = useAppStore.getState();
-    const updated = store.editorTabs.map((t) =>
-      t.id === active.id ? { ...t, dirty: false } : t,
-    );
+    const updated = store.editorTabs.map((t) => (t.id === active.id ? { ...t, dirty: false } : t));
     useAppStore.setState({ editorTabs: updated });
     // Manual save = fs change: retriggers the automatic project problem
     // scan (and any other fs subscriber) exactly like agent tool edits.

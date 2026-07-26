@@ -1,7 +1,7 @@
-import { spawn, execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { homedir } from 'node:os';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { homedir } from 'node:os';
 
 /// Claude Code bridge — runs the user's locally installed `claude` CLI in
 /// headless mode (`-p --output-format stream-json`) and pipes its NDJSON
@@ -60,10 +60,15 @@ export function agentAvailability(
 ): void {
   const bin = locateClaude();
   if (!bin) return cb({ available: false });
-  execFile(bin, ['--version'], { timeout: 5000, env: { ...process.env, PATH: extendedPath() } }, (err, stdout) => {
-    if (err) return cb({ available: false, path: bin });
-    cb({ available: true, path: bin, version: stdout.trim() });
-  });
+  execFile(
+    bin,
+    ['--version'],
+    { timeout: 5000, env: { ...process.env, PATH: extendedPath() } },
+    (err, stdout) => {
+      if (err) return cb({ available: false, path: bin });
+      cb({ available: true, path: bin, version: stdout.trim() });
+    },
+  );
 }
 
 export interface AgentRunRequest {
@@ -128,7 +133,9 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
     if (stderrTail.length > 40) stderrTail.shift();
   });
   child.on('error', (err) => {
-    res.write(`${JSON.stringify({ type: 'sidecar_error', message: `spawn failed: ${err.message}` })}\n`);
+    res.write(
+      `${JSON.stringify({ type: 'sidecar_error', message: `spawn failed: ${err.message}` })}\n`,
+    );
     res.end();
   });
   child.on('close', (code) => {

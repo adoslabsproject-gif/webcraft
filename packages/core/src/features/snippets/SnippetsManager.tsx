@@ -32,14 +32,22 @@ export function SnippetsManager({ onClose }: { onClose: () => void }) {
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-fg)]">
             Snippets
           </span>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
         <div className="grid flex-1 grid-cols-2 overflow-hidden">
           <ul className="overflow-y-auto border-r border-[var(--color-border-subtle)]">
             {snippets.map((s) => (
-              <li key={s.id} className="group flex items-start gap-2 border-b border-[var(--color-border-subtle)] px-3 py-2 text-[11px] hover:bg-[var(--color-bg-hover)]">
+              <li
+                key={s.id}
+                className="group flex items-start gap-2 border-b border-[var(--color-border-subtle)] px-3 py-2 text-[11px] hover:bg-[var(--color-bg-hover)]"
+              >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1">
                     <code className="rounded bg-[var(--color-bg)] px-1.5 py-0.5 font-mono text-[10px] text-[var(--color-accent)]">
@@ -53,18 +61,30 @@ export function SnippetsManager({ onClose }: { onClose: () => void }) {
                       </span>
                     ) : null}
                   </div>
-                  <div className="mt-0.5 truncate text-[var(--color-fg)]">{s.description || '—'}</div>
+                  <div className="mt-0.5 truncate text-[var(--color-fg)]">
+                    {s.description || '—'}
+                  </div>
                   <pre className="mt-1 max-h-20 overflow-hidden whitespace-pre-wrap text-[10px] text-[var(--color-fg-subtle)]">
                     {s.body.slice(0, 4).join('\n')}
                     {s.body.length > 4 ? '\n…' : ''}
                   </pre>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                  <button type="button" onClick={() => void navigator.clipboard.writeText(s.body.join('\n'))} title="Copy body" className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]">
+                  <button
+                    type="button"
+                    onClick={() => void navigator.clipboard.writeText(s.body.join('\n'))}
+                    title="Copy body"
+                    className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)]"
+                  >
                     <Copy className="h-3 w-3" />
                   </button>
                   {!s.builtin ? (
-                    <button type="button" onClick={() => remove(s.id)} title="Delete" className="rounded p-0.5 text-[var(--color-danger)] hover:text-[var(--color-danger)]">
+                    <button
+                      type="button"
+                      onClick={() => remove(s.id)}
+                      title="Delete"
+                      className="rounded p-0.5 text-[var(--color-danger)] hover:text-[var(--color-danger)]"
+                    >
                       <Trash2 className="h-3 w-3" />
                     </button>
                   ) : null}
@@ -84,8 +104,21 @@ export function SnippetsManager({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setEditing((s) => ({ ...s, language: e.target.value }))}
                   className="mt-0.5 w-full rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1 text-xs text-[var(--color-fg)]"
                 >
-                  {['typescript', 'javascript', 'typescriptreact', 'javascriptreact', 'python', 'sql', 'html', 'css', 'go', 'rust'].map((l) => (
-                    <option key={l} value={l}>{l}</option>
+                  {[
+                    'typescript',
+                    'javascript',
+                    'typescriptreact',
+                    'javascriptreact',
+                    'python',
+                    'sql',
+                    'html',
+                    'css',
+                    'go',
+                    'rust',
+                  ].map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
                   ))}
                 </select>
               </label>

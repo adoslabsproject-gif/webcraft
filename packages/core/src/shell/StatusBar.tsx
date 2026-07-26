@@ -1,4 +1,13 @@
-import { AlertTriangle, Check, Coins, Database as IndexIcon, GitBranch, Loader2, MessageSquare, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  Coins,
+  GitBranch,
+  Database as IndexIcon,
+  Loader2,
+  MessageSquare,
+  XCircle,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { codebaseIndex, type IndexProgress } from '../features/embeddings/codebase-index';
 import { useAppStore } from '../store/app-store';
@@ -37,10 +46,7 @@ export function StatusBar() {
           <GitBranch className="h-3 w-3" />
           {folderName ?? 'no folder'}
         </span>
-        <span
-          className="flex items-center gap-2"
-          title={`${errors} errors, ${warnings} warnings`}
-        >
+        <span className="flex items-center gap-2" title={`${errors} errors, ${warnings} warnings`}>
           {errors > 0 ? (
             <span className="flex items-center gap-1">
               <XCircle className="h-3 w-3" />

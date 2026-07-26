@@ -32,9 +32,7 @@ async function readIfExists(path: string): Promise<string | null> {
   return null;
 }
 
-export async function buildProjectContext(
-  projectRoot: string | null,
-): Promise<string | null> {
+export async function buildProjectContext(projectRoot: string | null): Promise<string | null> {
   if (!projectRoot) return null;
   const sections: string[] = [];
 

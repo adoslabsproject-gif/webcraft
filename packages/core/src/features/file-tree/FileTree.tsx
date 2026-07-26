@@ -12,9 +12,9 @@ import { useEffect, useRef, useState } from 'react';
 import { type NodeRendererProps, Tree } from 'react-arborist';
 import { pickFolder } from '../../lib/ipc/fs';
 import { useAppStore } from '../../store/app-store';
-import { fileIconFor } from './file-icons';
 import { FileTreeContextMenu } from './FileTreeContextMenu';
 import { handleFileAction } from './file-actions';
+import { fileIconFor } from './file-icons';
 import { type TreeNode, useFileTree } from './use-file-tree';
 
 interface ContextMenuState {

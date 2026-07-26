@@ -1,7 +1,7 @@
-import { DuckDBInstance } from '@duckdb/node-api';
-import path from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
+import path from 'node:path';
+import { DuckDBInstance } from '@duckdb/node-api';
 import type { DbDriver, DbQueryResult } from './types';
 
 const DB_DIR = path.join(homedir(), '.webcraft', 'databases', 'duckdb');

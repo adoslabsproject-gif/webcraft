@@ -28,7 +28,10 @@ interface GitState {
   setMessage: (m: string) => void;
 }
 
-async function git(cwd: string, args: string[]): Promise<{ stdout: string; stderr: string; code: number | null }> {
+async function git(
+  cwd: string,
+  args: string[],
+): Promise<{ stdout: string; stderr: string; code: number | null }> {
   const cmd = Command.create('git', args, { cwd });
   const out = await cmd.execute();
   return { stdout: out.stdout, stderr: out.stderr, code: out.code };

@@ -81,7 +81,10 @@ export function IndexManager({ table, onClose }: { table: string; onClose: () =>
       const colsResult = await runArbitrary(
         `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${table}' ORDER BY ordinal_position`,
       );
-      const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
+      const provider = createProvider({
+        provider: activeProvider,
+        apiKey: apiKeys[activeProvider],
+      });
       if (!provider) {
         window.alert('No AI provider configured.');
         return;
@@ -94,7 +97,12 @@ export function IndexManager({ table, onClose }: { table: string; onClose: () =>
         model,
         system: AI_SYSTEM,
         messages: [
-          { id: 'u', role: 'user', content: [{ type: 'text', text: tableDescription }], createdAt: Date.now() },
+          {
+            id: 'u',
+            role: 'user',
+            content: [{ type: 'text', text: tableDescription }],
+            createdAt: Date.now(),
+          },
         ],
         callbacks: {
           onText: (d) => {
@@ -127,7 +135,12 @@ export function IndexManager({ table, onClose }: { table: string; onClose: () =>
             <Zap className="h-3.5 w-3.5 text-amber-400" />
             Indexes for <code className="font-mono">{table}</code>
           </span>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -202,14 +215,21 @@ export function IndexManager({ table, onClose }: { table: string; onClose: () =>
                 onClick={() => void suggestWithAi()}
                 className="flex items-center gap-1 rounded border border-indigo-500/40 px-2 py-1 text-[11px] text-indigo-300 hover:bg-indigo-500/10 disabled:opacity-40"
               >
-                {suggesting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                {suggesting ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
                 Analyze with AI
               </button>
 
               {suggestions.length > 0 ? (
                 <ul className="mt-2 space-y-1">
                   {suggestions.map((s, i) => (
-                    <li key={i} className="rounded border border-indigo-500/30 bg-indigo-500/5 p-2 text-[11px]">
+                    <li
+                      key={i}
+                      className="rounded border border-indigo-500/30 bg-indigo-500/5 p-2 text-[11px]"
+                    >
                       <div className="flex items-center justify-between">
                         <code className="font-mono text-indigo-300">{s.name}</code>
                         <button

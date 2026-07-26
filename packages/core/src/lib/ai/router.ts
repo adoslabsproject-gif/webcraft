@@ -1,8 +1,8 @@
+import type { Provider as ProviderId } from '../../store/settings-store';
 import { AnthropicProvider } from './anthropic-client';
 import { ClaudeCodeProvider } from './claude-code-client';
 import { OpenAiCompatProvider } from './openai-compat-client';
 import type { ChatMessage, ContentBlock, ToolDefinition, ToolResultBlock } from './types';
-import type { Provider as ProviderId } from '../../store/settings-store';
 
 /// Provider dispatcher — keeps the call surface identical regardless of
 /// backend. use-chat.ts depends only on `createProvider` + the common

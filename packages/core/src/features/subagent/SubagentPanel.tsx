@@ -1,6 +1,6 @@
 import { Bot, ChevronDown, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useSubagentStore, type SubagentTranscript } from '../../lib/ai/subagent-store';
+import { type SubagentTranscript, useSubagentStore } from '../../lib/ai/subagent-store';
 
 /// Subagent panel — lists every subagent transcript spawned via the
 /// `subagent` tool in this session. Click a row to expand its
@@ -26,7 +26,10 @@ export function SubagentPanel() {
       <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs">
         <span className="font-semibold uppercase tracking-wider text-neutral-400">
           Subagents · {transcripts.length} ·{' '}
-          <span className="text-amber-400">{transcripts.filter((t) => t.status === 'running').length}</span> running
+          <span className="text-amber-400">
+            {transcripts.filter((t) => t.status === 'running').length}
+          </span>{' '}
+          running
         </span>
         <button
           type="button"

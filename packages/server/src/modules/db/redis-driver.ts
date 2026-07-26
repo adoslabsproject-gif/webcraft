@@ -27,9 +27,7 @@ export class RedisDriver implements DbDriver {
       const args = tokens.slice(1);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = await (client as any).call(cmd, ...args);
-      const rows = Array.isArray(result)
-        ? result.map((r) => [r])
-        : [[result]];
+      const rows = Array.isArray(result) ? result.map((r) => [r]) : [[result]];
       return {
         columns: ['value'],
         rows,
@@ -56,5 +54,11 @@ export class RedisDriver implements DbDriver {
 }
 
 function err(message: string, durationMs = 0): DbQueryResult {
-  return { columns: [], rows: [], rowsAffected: 0, durationMs: Math.round(durationMs), error: message };
+  return {
+    columns: [],
+    rows: [],
+    rowsAffected: 0,
+    durationMs: Math.round(durationMs),
+    error: message,
+  };
 }

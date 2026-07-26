@@ -15,11 +15,11 @@
 /// terminal "overwrite same line" semantics). Then strip ANSI.
 
 // CSI: ESC `[` <params> <final>  — covers colour, cursor moves, line clear.
-const ANSI_CSI = new RegExp('\\x1b\\[[0-9;?]*[@-~]', 'g');
+const ANSI_CSI = /\x1b\[[0-9;?]*[@-~]/g;
 // OSC: ESC `]` <payload> BEL  — terminal title etc.
-const ANSI_OSC = new RegExp('\\x1b\\][\\s\\S]*?\\x07', 'g');
+const ANSI_OSC = /\x1b\][\s\S]*?\x07/g;
 // Stray single control bytes that survived (BEL, VT, FF, SO, SI, ESC alone).
-const STRAY_CTRL = new RegExp('[\\x00-\\x08\\x0B-\\x0C\\x0E-\\x1F\\x7F]', 'g');
+const STRAY_CTRL = /[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g;
 
 export function cleanOutputChunk(chunk: string): string {
   const noCrlf = chunk.replace(/\r\n/g, '\n');

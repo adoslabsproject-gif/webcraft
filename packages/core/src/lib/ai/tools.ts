@@ -153,7 +153,10 @@ export const TOOLS: ToolDefinition[] = [
         pattern: { type: 'string', description: 'Regex pattern (PCRE2 flavor).' },
         glob: { type: 'string', description: 'Optional file glob to limit search.' },
         type: { type: 'string', description: 'Optional ripgrep file type (e.g. ts, rust, py).' },
-        context_lines: { type: 'string', description: 'Optional lines of context around each match.' },
+        context_lines: {
+          type: 'string',
+          description: 'Optional lines of context around each match.',
+        },
         ignore_case: { type: 'string', description: '"true" for case-insensitive search.' },
       },
       required: ['pattern'],
@@ -205,7 +208,9 @@ export const TOOLS: ToolDefinition[] = [
       'Return all LSP diagnostics (errors, warnings) for a file, or the whole project if path omitted.',
     input_schema: {
       type: 'object',
-      properties: { path: { type: 'string', description: 'Optional file path; omit for project-wide.' } },
+      properties: {
+        path: { type: 'string', description: 'Optional file path; omit for project-wide.' },
+      },
       required: [],
     },
   },
@@ -421,7 +426,10 @@ export const TOOLS: ToolDefinition[] = [
         path: { type: 'string', description: 'File containing the symbol declaration.' },
         line: { type: 'string', description: '1-indexed line of the symbol.' },
         column: { type: 'string', description: 'Optional 1-indexed column of the symbol.' },
-        symbol: { type: 'string', description: 'Optional current identifier (used to locate the column when omitted).' },
+        symbol: {
+          type: 'string',
+          description: 'Optional current identifier (used to locate the column when omitted).',
+        },
         new_name: { type: 'string', description: 'Replacement identifier.' },
       },
       required: ['path', 'line', 'new_name'],

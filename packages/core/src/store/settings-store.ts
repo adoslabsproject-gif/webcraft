@@ -120,12 +120,22 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // A model persisted for a removed provider (e.g. the old NHA vLLM path)
     // must not leak into the new active provider.
     const model =
-      storedModel && storedProvider === activeProvider ? storedModel : DEFAULT_MODELS[activeProvider];
+      storedModel && storedProvider === activeProvider
+        ? storedModel
+        : DEFAULT_MODELS[activeProvider];
     const theme = (await store.get<'dark' | 'light'>('theme')) ?? 'dark';
     const outputStyle = (await store.get<OutputStyle>('outputStyle')) ?? 'default';
     const claudeCodePermissionMode =
       (await store.get<ClaudeCodePermissionMode>('claudeCodePermissionMode')) ?? 'acceptEdits';
-    set({ apiKeys, activeProvider, model, theme, outputStyle, claudeCodePermissionMode, loaded: true });
+    set({
+      apiKeys,
+      activeProvider,
+      model,
+      theme,
+      outputStyle,
+      claudeCodePermissionMode,
+      loaded: true,
+    });
   },
 
   async setApiKey(provider, key) {

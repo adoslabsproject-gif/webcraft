@@ -1,7 +1,7 @@
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { applyInlineReplacement, runInlineEdit } from './inline-edit';
 import { getEditor } from './editor-controller';
+import { applyInlineReplacement, runInlineEdit } from './inline-edit';
 
 /// Floating prompt overlay for ⌘K inline edits. Rendered by EditorArea.
 ///
@@ -24,8 +24,18 @@ export function InlineEditPrompt({ open, onClose }: InlineEditPromptProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const originalTextRef = useRef<string>('');
-  const originalRangeRef = useRef<{ startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number } | null>(null);
-  const currentRangeRef = useRef<{ startLineNumber: number; startColumn: number; endLineNumber: number; endColumn: number } | null>(null);
+  const originalRangeRef = useRef<{
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+  } | null>(null);
+  const currentRangeRef = useRef<{
+    startLineNumber: number;
+    startColumn: number;
+    endLineNumber: number;
+    endColumn: number;
+  } | null>(null);
 
   useEffect(() => {
     if (open && !busy && !done) requestAnimationFrame(() => inputRef.current?.focus());

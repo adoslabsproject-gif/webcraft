@@ -1,6 +1,6 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import { sidecarUrl } from '../ipc/sidecar';
 import { useAppStore } from '../../store/app-store';
+import { sidecarUrl } from '../ipc/sidecar';
 import type { ChatMessage, ContentBlock, ToolResultBlock } from './types';
 
 /// Claude Code provider — the user's locally installed `claude` CLI as the
@@ -68,9 +68,7 @@ function resultText(content: unknown): string {
   if (typeof content === 'string') return content;
   if (Array.isArray(content)) {
     return content
-      .map((part) =>
-        typeof part === 'string' ? part : ((part as { text?: string }).text ?? ''),
-      )
+      .map((part) => (typeof part === 'string' ? part : ((part as { text?: string }).text ?? '')))
       .join('\n');
   }
   return JSON.stringify(content ?? '');
@@ -84,7 +82,11 @@ export class ClaudeCodeProvider {
     maxTokens?: number;
     signal?: AbortSignal;
     callbacks: StreamCallbacks;
-  }): Promise<{ assistantBlocks: ContentBlock[]; stopReason: string; toolResults?: ToolResultBlock[] }> {
+  }): Promise<{
+    assistantBlocks: ContentBlock[];
+    stopReason: string;
+    toolResults?: ToolResultBlock[];
+  }> {
     const { messages, callbacks, signal } = opts;
     const projectRoot = useAppStore.getState().projectRoot;
     const sessionKey = projectRoot ?? '';
@@ -150,7 +152,7 @@ export class ClaudeCodeProvider {
     let buf = '';
     const assistantBlocks: ContentBlock[] = [];
     const toolResults: ToolResultBlock[] = [];
-    let stopReason = 'end_turn';
+    const stopReason = 'end_turn';
     let runError: string | null = null;
 
     const handleLine = (line: string) => {
@@ -180,7 +182,13 @@ export class ClaudeCodeProvider {
         const content = (event as { message?: { content?: unknown[] } }).message?.content ?? [];
         const turnBlocks: ContentBlock[] = [];
         for (const raw of content) {
-          const block = raw as { type?: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> };
+          const block = raw as {
+            type?: string;
+            text?: string;
+            id?: string;
+            name?: string;
+            input?: Record<string, unknown>;
+          };
           if (block.type === 'text' && block.text) {
             turnBlocks.push({ type: 'text', text: block.text });
           } else if (block.type === 'tool_use' && block.id && block.name) {
@@ -205,7 +213,12 @@ export class ClaudeCodeProvider {
         const content = (event as { message?: { content?: unknown[] } }).message?.content ?? [];
         const turnResults: ToolResultBlock[] = [];
         for (const raw of content) {
-          const block = raw as { type?: string; tool_use_id?: string; content?: unknown; is_error?: boolean };
+          const block = raw as {
+            type?: string;
+            tool_use_id?: string;
+            content?: unknown;
+            is_error?: boolean;
+          };
           if (block.type === 'tool_result' && block.tool_use_id) {
             turnResults.push({
               type: 'tool_result',
@@ -218,11 +231,7 @@ export class ClaudeCodeProvider {
             const matching = assistantBlocks.find(
               (b) => b.type === 'tool_use' && b.id === block.tool_use_id,
             );
-            if (
-              matching &&
-              matching.type === 'tool_use' &&
-              FS_MUTATING_TOOLS.has(matching.name)
-            ) {
+            if (matching && matching.type === 'tool_use' && FS_MUTATING_TOOLS.has(matching.name)) {
               useAppStore.getState().notifyFsChange();
             }
           }

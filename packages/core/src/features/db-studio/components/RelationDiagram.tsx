@@ -1,5 +1,5 @@
-import mermaid from 'mermaid';
 import { Network } from 'lucide-react';
+import mermaid from 'mermaid';
 import { useEffect, useRef, useState } from 'react';
 import { useDbStore } from '../db-store';
 
@@ -45,7 +45,9 @@ export function RelationDiagram() {
           JOIN information_schema.constraint_column_usage AS ccu USING (constraint_name)
           WHERE tc.constraint_type='FOREIGN KEY' AND tc.table_schema='${t.schema}' AND tc.table_name='${t.name}'`);
         for (const row of fks.rows) {
-          diagramParts.push(`  ${full} ||--o{ public_${String(row[1])} : "${String(row[0])}→${String(row[2])}"`);
+          diagramParts.push(
+            `  ${full} ||--o{ public_${String(row[1])} : "${String(row[0])}→${String(row[2])}"`,
+          );
         }
       }
       if (cancelled) return;
@@ -76,11 +78,7 @@ export function RelationDiagram() {
     );
   }
   if (renderError) {
-    return (
-      <div className="p-3 text-[11px] text-red-300">
-        Diagram render failed: {renderError}
-      </div>
-    );
+    return <div className="p-3 text-[11px] text-red-300">Diagram render failed: {renderError}</div>;
   }
   return <div ref={ref} className="h-full w-full overflow-auto bg-neutral-950 p-3" />;
 }

@@ -18,9 +18,7 @@ export function MemorySettings() {
   const [globalPath, setGlobalPath] = useState<string | null>(null);
 
   useEffect(() => {
-    void homeDir().then((home) =>
-      setGlobalPath(`${home.replace(/\/$/, '')}/.claude/CLAUDE.md`),
-    );
+    void homeDir().then((home) => setGlobalPath(`${home.replace(/\/$/, '')}/.claude/CLAUDE.md`));
   }, []);
 
   return (
@@ -110,7 +108,9 @@ function MemoryFileEditor({
         onChange={(e) => setText(e.target.value)}
         rows={8}
         spellCheck={false}
-        placeholder={'# Standing instructions for the AI\n- Always answer in Italian\n- Never use tabs, 2-space indent\n…'}
+        placeholder={
+          '# Standing instructions for the AI\n- Always answer in Italian\n- Never use tabs, 2-space indent\n…'
+        }
         className="w-full resize-y rounded border border-neutral-800 bg-neutral-900 p-2 font-mono text-[11px] leading-relaxed text-neutral-200 placeholder:text-neutral-600 focus:border-indigo-500 focus:outline-none"
       />
     </div>

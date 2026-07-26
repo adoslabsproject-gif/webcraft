@@ -156,7 +156,10 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'GET' && req.url === '/lsp/languages') {
       const lsp = await import('./modules/lsp/host');
-      return send(res, 200, { languages: lsp.listActiveLanguages(), supported: Object.keys(lsp.DEFAULT_LSP_SERVERS) });
+      return send(res, 200, {
+        languages: lsp.listActiveLanguages(),
+        supported: Object.keys(lsp.DEFAULT_LSP_SERVERS),
+      });
     }
 
     if (req.method === 'POST' && req.url === '/lsp/request') {

@@ -35,7 +35,9 @@ export function usePty({ cwd, onData, onExit }: UsePtyOptions) {
         }
         activeId = id;
         setSessionId(id);
-        unlistenData = await listen<string>(`pty://output:${id}`, (e) => dataRef.current(e.payload));
+        unlistenData = await listen<string>(`pty://output:${id}`, (e) =>
+          dataRef.current(e.payload),
+        );
         unlistenExit = await listen(`pty://exit:${id}`, () => exitRef.current?.());
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e));

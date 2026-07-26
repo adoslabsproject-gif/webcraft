@@ -1,6 +1,6 @@
+import { useAppStore } from '../../store/app-store';
 import { readFile, writeFile } from '../ipc/fs';
 import { sidecarPost } from '../ipc/sidecar';
-import { useAppStore } from '../../store/app-store';
 
 /// Real LSP-backed agent tools — goto_definition / find_references /
 /// rename_symbol, served by the sidecar's language-server host (which
@@ -95,7 +95,11 @@ async function withDocument<T>(
 }
 
 function formatLocations(raw: unknown): string {
-  const list: LspLocation[] = Array.isArray(raw) ? (raw as LspLocation[]) : raw ? [raw as LspLocation] : [];
+  const list: LspLocation[] = Array.isArray(raw)
+    ? (raw as LspLocation[])
+    : raw
+      ? [raw as LspLocation]
+      : [];
   if (list.length === 0) return '(no results)';
   return list
     .map((loc) => {
@@ -162,7 +166,8 @@ async function applyWorkspaceEdit(edit: WorkspaceEdit): Promise<string[]> {
     const lines = text.split('\n');
     const sorted = [...edits].sort(
       (a, b) =>
-        b.range.start.line - a.range.start.line || b.range.start.character - a.range.start.character,
+        b.range.start.line - a.range.start.line ||
+        b.range.start.character - a.range.start.character,
     );
     for (const e of sorted) {
       const { start, end } = e.range;
@@ -201,11 +206,32 @@ export async function lspRename(
 }
 
 const SYMBOL_KINDS: Record<number, string> = {
-  1: 'file', 2: 'module', 3: 'namespace', 4: 'package', 5: 'class', 6: 'method',
-  7: 'property', 8: 'field', 9: 'constructor', 10: 'enum', 11: 'interface',
-  12: 'function', 13: 'variable', 14: 'constant', 15: 'string', 16: 'number',
-  17: 'boolean', 18: 'array', 19: 'object', 20: 'key', 21: 'null',
-  22: 'enum-member', 23: 'struct', 24: 'event', 25: 'operator', 26: 'type-param',
+  1: 'file',
+  2: 'module',
+  3: 'namespace',
+  4: 'package',
+  5: 'class',
+  6: 'method',
+  7: 'property',
+  8: 'field',
+  9: 'constructor',
+  10: 'enum',
+  11: 'interface',
+  12: 'function',
+  13: 'variable',
+  14: 'constant',
+  15: 'string',
+  16: 'number',
+  17: 'boolean',
+  18: 'array',
+  19: 'object',
+  20: 'key',
+  21: 'null',
+  22: 'enum-member',
+  23: 'struct',
+  24: 'event',
+  25: 'operator',
+  26: 'type-param',
 };
 
 interface DocSymbol {
@@ -220,8 +246,7 @@ interface DocSymbol {
 function formatSymbols(symbols: DocSymbol[], depth: number): string[] {
   const out: string[] = [];
   for (const s of symbols) {
-    const line =
-      (s.selectionRange ?? s.range ?? s.location?.range)?.start.line ?? 0;
+    const line = (s.selectionRange ?? s.range ?? s.location?.range)?.start.line ?? 0;
     out.push(
       `${'  '.repeat(depth)}${s.name} [${SYMBOL_KINDS[s.kind] ?? s.kind}] (line ${line + 1})`,
     );

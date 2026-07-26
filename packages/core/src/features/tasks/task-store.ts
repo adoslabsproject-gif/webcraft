@@ -26,7 +26,10 @@ export interface Task {
 interface TaskState {
   tasks: Task[];
   create: (input: { title: string; description?: string; priority?: TaskPriority }) => Task;
-  update: (id: string, patch: Partial<Pick<Task, 'status' | 'priority'>> & { note?: string }) => Task | null;
+  update: (
+    id: string,
+    patch: Partial<Pick<Task, 'status' | 'priority'>> & { note?: string },
+  ) => Task | null;
   get: (id: string) => Task | null;
   list: (filter?: { status?: TaskStatus }) => Task[];
   remove: (id: string) => void;

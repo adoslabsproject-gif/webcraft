@@ -1,5 +1,5 @@
-import { MongoMemoryServer } from 'mongodb-memory-server';
 import { MongoClient } from 'mongodb';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { DbDriver, DbQueryResult } from './types';
 
 /// MongoDB driver — uses mongodb-memory-server to spawn a local mongod
@@ -58,7 +58,10 @@ export class MongoDriver implements DbDriver {
         return err(`unsupported op: ${String(spec.op)}`, performance.now() - start);
       }
       const arr = Array.isArray(result) ? result : [result];
-      const columns = arr[0] && typeof arr[0] === 'object' ? Object.keys(arr[0] as Record<string, unknown>) : ['value'];
+      const columns =
+        arr[0] && typeof arr[0] === 'object'
+          ? Object.keys(arr[0] as Record<string, unknown>)
+          : ['value'];
       return {
         columns,
         rows: arr.map((r) =>
@@ -93,5 +96,11 @@ export class MongoDriver implements DbDriver {
 }
 
 function err(message: string, durationMs = 0): DbQueryResult {
-  return { columns: [], rows: [], rowsAffected: 0, durationMs: Math.round(durationMs), error: message };
+  return {
+    columns: [],
+    rows: [],
+    rowsAffected: 0,
+    durationMs: Math.round(durationMs),
+    error: message,
+  };
 }

@@ -1,15 +1,15 @@
 import {
   AlertTriangle,
-  Cog,
-  Database,
   Box,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Cog,
+  Database,
   FileText,
   Globe,
-  Sparkles,
   ShoppingCart,
+  Sparkles,
   Users,
   X,
 } from 'lucide-react';
@@ -87,15 +87,50 @@ CREATE INDEX idx_sessions_expires ON sessions(expires_at);`,
 ];
 
 const ENGINES: { id: DbKind; label: string; description: string; available: boolean }[] = [
-  { id: 'pglite', label: 'PostgreSQL (PGLite)', description: 'In-process Postgres WASM. Recommended.', available: true },
-  { id: 'sqlite', label: 'SQLite', description: 'File-based, zero setup. Sidecar pending.', available: false },
-  { id: 'duckdb', label: 'DuckDB', description: 'Analytics OLAP. Sidecar pending.', available: false },
-  { id: 'mysql', label: 'MySQL', description: 'Portable binary. Sidecar pending.', available: false },
-  { id: 'mariadb', label: 'MariaDB', description: 'MySQL fork. Sidecar pending.', available: false },
+  {
+    id: 'pglite',
+    label: 'PostgreSQL (PGLite)',
+    description: 'In-process Postgres WASM. Recommended.',
+    available: true,
+  },
+  {
+    id: 'sqlite',
+    label: 'SQLite',
+    description: 'File-based, zero setup. Sidecar pending.',
+    available: false,
+  },
+  {
+    id: 'duckdb',
+    label: 'DuckDB',
+    description: 'Analytics OLAP. Sidecar pending.',
+    available: false,
+  },
+  {
+    id: 'mysql',
+    label: 'MySQL',
+    description: 'Portable binary. Sidecar pending.',
+    available: false,
+  },
+  {
+    id: 'mariadb',
+    label: 'MariaDB',
+    description: 'MySQL fork. Sidecar pending.',
+    available: false,
+  },
   { id: 'mongo', label: 'MongoDB', description: 'Document. Sidecar pending.', available: false },
   { id: 'redis', label: 'Redis', description: 'Key-value. Sidecar pending.', available: false },
-  { id: 'libsql', label: 'LibSQL (Turso)', description: 'Distributed SQLite. Sidecar pending.', available: false },
-  { id: 'surrealdb', label: 'SurrealDB', description: 'Multi-model. Sidecar pending.', available: false },
+  {
+    id: 'libsql',
+    label: 'LibSQL (Turso)',
+    description: 'Distributed SQLite. Sidecar pending.',
+    available: false,
+  },
+  {
+    id: 'surrealdb',
+    label: 'SurrealDB',
+    description: 'Multi-model. Sidecar pending.',
+    available: false,
+  },
 ];
 
 export function DbCreationWizard({ onClose }: { onClose: () => void }) {
@@ -152,7 +187,12 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
             <Database className="h-3.5 w-3.5 text-emerald-400" />
             Create database — step {stepIdx + 1} of 4
           </span>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -169,8 +209,18 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
                     : 'text-[var(--color-fg-dim)]'
               }`}
             >
-              {i < stepIdx ? <CheckCircle2 className="h-3 w-3 text-[var(--color-success)]" /> : <span className="font-mono">{i + 1}</span>}
-              {s === 'engine' ? 'Engine' : s === 'name' ? 'Name' : s === 'template' ? 'Template' : 'Review'}
+              {i < stepIdx ? (
+                <CheckCircle2 className="h-3 w-3 text-[var(--color-success)]" />
+              ) : (
+                <span className="font-mono">{i + 1}</span>
+              )}
+              {s === 'engine'
+                ? 'Engine'
+                : s === 'name'
+                  ? 'Name'
+                  : s === 'template'
+                    ? 'Template'
+                    : 'Review'}
             </li>
           ))}
         </ol>
@@ -200,7 +250,9 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
                       }`}
                     >
                       <div className="flex w-full items-center gap-1.5">
-                        <Database className={`h-3 w-3 ${e.available ? 'text-emerald-400' : 'text-amber-400/70'}`} />
+                        <Database
+                          className={`h-3 w-3 ${e.available ? 'text-emerald-400' : 'text-amber-400/70'}`}
+                        />
                         <span className="font-medium text-[var(--color-fg)]">{e.label}</span>
                         {e.available ? (
                           <span className="ml-auto rounded bg-emerald-500/20 px-1.5 py-px text-[9px] font-medium uppercase tracking-wider text-emerald-300">
@@ -212,7 +264,9 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-[var(--color-fg-subtle)]">{e.description}</span>
+                      <span className="text-[10px] text-[var(--color-fg-subtle)]">
+                        {e.description}
+                      </span>
                     </button>
                   );
                 })}
@@ -222,8 +276,8 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
                   <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
                     <strong>Heads up:</strong> the connection will be saved and visible in the
-                    sidebar, but <em>queries against {engine} won't actually run</em> until the
-                    Node sidecar is bundled. Driver code is already in{' '}
+                    sidebar, but <em>queries against {engine} won't actually run</em> until the Node
+                    sidecar is bundled. Driver code is already in{' '}
                     <code className="rounded bg-black/30 px-1 font-mono text-[10px]">
                       packages/server/src/modules/db/{engine}-driver.ts
                     </code>
@@ -234,7 +288,9 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
             </div>
           ) : step === 'name' ? (
             <div>
-              <h3 className="mb-1 text-sm font-semibold text-[var(--color-fg)]">Name the database</h3>
+              <h3 className="mb-1 text-sm font-semibold text-[var(--color-fg)]">
+                Name the database
+              </h3>
               <p className="mb-3 text-[11px] text-[var(--color-fg-subtle)]">
                 Used as the connection label in the sidebar.
               </p>
@@ -249,7 +305,9 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
             </div>
           ) : step === 'template' ? (
             <div>
-              <h3 className="mb-1 text-sm font-semibold text-[var(--color-fg)]">Pick a starter template</h3>
+              <h3 className="mb-1 text-sm font-semibold text-[var(--color-fg)]">
+                Pick a starter template
+              </h3>
               <p className="mb-3 text-[11px] text-[var(--color-fg-subtle)]">
                 Skeleton schemas with tables + foreign keys + indexes. Customize freely after.
               </p>
@@ -270,7 +328,9 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
                       <Icon className="h-4 w-4 shrink-0 text-emerald-400" />
                       <div className="min-w-0">
                         <div className="font-medium text-[var(--color-fg)]">{t.label}</div>
-                        <div className="text-[10px] text-[var(--color-fg-subtle)]">{t.description}</div>
+                        <div className="text-[10px] text-[var(--color-fg-subtle)]">
+                          {t.description}
+                        </div>
                       </div>
                     </button>
                   );
@@ -289,7 +349,8 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
                     className="mt-1 w-full rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-xs text-[var(--color-fg)] focus:border-emerald-500 focus:outline-none"
                   />
                   <p className="mt-1 text-[10px] text-[var(--color-fg-dim)]">
-                    After creation, open the "AI Schema" modal in DB Studio to let Liara/Anthropic write the DDL.
+                    After creation, open the "AI Schema" modal in DB Studio to let Liara/Anthropic
+                    write the DDL.
                   </p>
                 </div>
               ) : template.ddl ? (
@@ -300,7 +361,9 @@ export function DbCreationWizard({ onClose }: { onClose: () => void }) {
             </div>
           ) : (
             <div>
-              <h3 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Review &amp; create</h3>
+              <h3 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">
+                Review &amp; create
+              </h3>
               <dl className="space-y-2 text-[11px]">
                 <div className="flex items-center gap-2">
                   <Cog className="h-3 w-3 text-[var(--color-fg-subtle)]" />

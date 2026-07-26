@@ -1,9 +1,9 @@
-import { useAppStore } from '../store/app-store';
 import { FileTree } from '../features/file-tree/FileTree';
 import { GitPanel } from '../features/git/GitPanel';
 import { OutlinePanel } from '../features/outline/OutlinePanel';
 import { SearchPanel } from '../features/search/SearchPanel';
 import { SettingsPanel } from '../features/settings/SettingsPanel';
+import { useAppStore } from '../store/app-store';
 
 /// Sidebar router — renders the panel matching the active ActivityBar slot.
 /// DB Studio, AI Chat, and Dev Server are intentionally NOT here: they open

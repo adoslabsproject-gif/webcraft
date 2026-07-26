@@ -53,7 +53,8 @@ function findLibs(roots, matcher) {
         }
         if (!st.isFile()) continue;
         const prev = byName.get(entry.name);
-        if (!prev || st.mtimeMs > prev.mtime) byName.set(entry.name, { path: full, mtime: st.mtimeMs });
+        if (!prev || st.mtimeMs > prev.mtime)
+          byName.set(entry.name, { path: full, mtime: st.mtimeMs });
       }
     }
   };
@@ -103,7 +104,10 @@ if (process.platform === 'darwin') {
   assertStaged(dest, REQUIRED);
 } else if (process.platform === 'win32') {
   const libs = findLibs(
-    [join(srcTauri, 'target'), join(process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'), 'sherpa-rs')],
+    [
+      join(srcTauri, 'target'),
+      join(process.env.LOCALAPPDATA ?? join(homedir(), 'AppData', 'Local'), 'sherpa-rs'),
+    ],
     (n) => n.endsWith('.dll') && (n.includes('sherpa') || n.includes('onnxruntime')),
   );
   if (libs.size === 0) {

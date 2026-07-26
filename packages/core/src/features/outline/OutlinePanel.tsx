@@ -1,4 +1,3 @@
-import * as monaco from 'monaco-editor';
 import {
   Braces,
   Code2,
@@ -10,6 +9,7 @@ import {
   Type,
   Variable,
 } from 'lucide-react';
+import * as monaco from 'monaco-editor';
 import { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/app-store';
 
@@ -85,7 +85,9 @@ export function OutlinePanel() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const symbolProviders = (monaco.languages as any).getDocumentSymbolProviders?.(model) ?? [];
         for (const p of symbolProviders) {
-          const result = await p.provideDocumentSymbols?.(model, { isCancellationRequested: false });
+          const result = await p.provideDocumentSymbols?.(model, {
+            isCancellationRequested: false,
+          });
           if (Array.isArray(result) && result.length > 0) {
             if (cancelled) return;
             setSymbols(convertSymbols(result));

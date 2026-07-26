@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useDbStore, type QueryResult } from '../db-store';
+import { type QueryResult, useDbStore } from '../db-store';
 
 const PAGE_SIZE = 50;
 
@@ -26,7 +26,8 @@ export function TableBrowser() {
     void load();
   }, [load]);
 
-  if (!table) return <div className="p-3 text-xs text-neutral-500">Pick a table to browse rows.</div>;
+  if (!table)
+    return <div className="p-3 text-xs text-neutral-500">Pick a table to browse rows.</div>;
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

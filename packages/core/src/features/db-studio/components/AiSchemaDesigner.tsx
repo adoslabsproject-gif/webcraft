@@ -42,7 +42,12 @@ export function AiSchemaDesigner({ onClose }: { onClose: () => void }) {
         model,
         system: SYSTEM,
         messages: [
-          { id: 'u', role: 'user', content: [{ type: 'text', text: prompt }], createdAt: Date.now() },
+          {
+            id: 'u',
+            role: 'user',
+            content: [{ type: 'text', text: prompt }],
+            createdAt: Date.now(),
+          },
         ],
         callbacks: {
           onText: (d) => {
@@ -83,7 +88,11 @@ export function AiSchemaDesigner({ onClose }: { onClose: () => void }) {
             <Sparkles className="h-3 w-3 text-indigo-400" />
             AI Schema Designer
           </span>
-          <button type="button" onClick={onClose} className="text-xs text-neutral-500 hover:text-neutral-200">
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-xs text-neutral-500 hover:text-neutral-200"
+          >
             Close
           </button>
         </div>
@@ -100,7 +109,9 @@ export function AiSchemaDesigner({ onClose }: { onClose: () => void }) {
           </div>
           <div className="flex flex-col">
             <div className="flex items-center justify-between px-3 py-1.5">
-              <span className="text-[10px] uppercase tracking-wider text-neutral-500">Generated DDL</span>
+              <span className="text-[10px] uppercase tracking-wider text-neutral-500">
+                Generated DDL
+              </span>
             </div>
             <textarea
               value={ddl}
@@ -111,9 +122,15 @@ export function AiSchemaDesigner({ onClose }: { onClose: () => void }) {
             />
           </div>
         </div>
-        {error ? <div className="border-t border-red-500/30 bg-red-500/5 p-2 text-[11px] text-red-300">{error}</div> : null}
+        {error ? (
+          <div className="border-t border-red-500/30 bg-red-500/5 p-2 text-[11px] text-red-300">
+            {error}
+          </div>
+        ) : null}
         {runResult ? (
-          <div className="border-t border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] text-emerald-300">{runResult}</div>
+          <div className="border-t border-emerald-500/30 bg-emerald-500/5 p-2 text-[11px] text-emerald-300">
+            {runResult}
+          </div>
         ) : null}
         <div className="flex items-center justify-end gap-2 border-t border-neutral-800 bg-neutral-950 p-2">
           <button

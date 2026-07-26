@@ -229,7 +229,12 @@ export function registerLspProviders(): monaco.IDisposable[] {
         const res = (await lspRequest(language, 'textDocument/completion', {
           textDocument: { uri: pathToUri(model.uri.path) },
           position: lspPosFromMonaco(position),
-        })) as { items?: Array<{ label: string; kind?: number; detail?: string; insertText?: string }> } | Array<{ label: string }> | null;
+        })) as
+          | {
+              items?: Array<{ label: string; kind?: number; detail?: string; insertText?: string }>;
+            }
+          | Array<{ label: string }>
+          | null;
         if (!res) return { suggestions: [] };
         const items = Array.isArray(res) ? res : (res.items ?? []);
         const word = model.getWordUntilPosition(position);
@@ -242,12 +247,14 @@ export function registerLspProviders(): monaco.IDisposable[] {
         return {
           suggestions: items.map((it) => ({
             label: it.label,
-            kind: ('kind' in it && typeof it.kind === 'number'
-              ? (it.kind as monaco.languages.CompletionItemKind)
-              : monaco.languages.CompletionItemKind.Variable),
-            insertText: ('insertText' in it && typeof it.insertText === 'string'
-              ? it.insertText
-              : it.label) ?? it.label,
+            kind:
+              'kind' in it && typeof it.kind === 'number'
+                ? (it.kind as monaco.languages.CompletionItemKind)
+                : monaco.languages.CompletionItemKind.Variable,
+            insertText:
+              ('insertText' in it && typeof it.insertText === 'string'
+                ? it.insertText
+                : it.label) ?? it.label,
             detail: 'detail' in it && typeof it.detail === 'string' ? it.detail : undefined,
             range,
           })),

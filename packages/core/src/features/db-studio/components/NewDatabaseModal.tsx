@@ -23,7 +23,11 @@ export function NewDatabaseModal({ onClose }: { onClose: () => void }) {
   const [kind, setKind] = useState<DbKind>('pglite');
 
   function create() {
-    const id = addConnection({ name: name.trim() || 'Untitled', kind, available: kind === 'pglite' });
+    const id = addConnection({
+      name: name.trim() || 'Untitled',
+      kind,
+      available: kind === 'pglite',
+    });
     setActive(id);
     onClose();
   }

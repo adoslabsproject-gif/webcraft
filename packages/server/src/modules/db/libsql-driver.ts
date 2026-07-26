@@ -1,7 +1,7 @@
-import { createClient, type Client } from '@libsql/client';
-import path from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
+import path from 'node:path';
+import { type Client, createClient } from '@libsql/client';
 import type { DbDriver, DbQueryResult } from './types';
 
 const DB_DIR = path.join(homedir(), '.webcraft', 'databases', 'libsql');
@@ -55,5 +55,11 @@ export class LibsqlDriver implements DbDriver {
 }
 
 function err(message: string, durationMs = 0): DbQueryResult {
-  return { columns: [], rows: [], rowsAffected: 0, durationMs: Math.round(durationMs), error: message };
+  return {
+    columns: [],
+    rows: [],
+    rowsAffected: 0,
+    durationMs: Math.round(durationMs),
+    error: message,
+  };
 }

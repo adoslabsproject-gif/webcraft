@@ -1,6 +1,6 @@
 import { AlertTriangle, Check, ShieldCheck, X } from 'lucide-react';
 import { useEffect } from 'react';
-import { usePermissionStore, type PermissionCategory } from '../../lib/ai/permissions';
+import { type PermissionCategory, usePermissionStore } from '../../lib/ai/permissions';
 
 /// Modal shown when the model wants to perform a destructive action. Same
 /// UX pattern as Claude Code CLI — three buttons:
@@ -65,8 +65,8 @@ export function PermissionDialog() {
           ) : null}
           <p className="text-[11px] text-[var(--color-fg-subtle)]">
             <kbd className="rounded bg-[var(--color-bg)] px-1 font-mono">Enter</kbd> Allow once ·{' '}
-            <kbd className="rounded bg-[var(--color-bg)] px-1 font-mono">⌘ Enter</kbd> Allow
-            session · <kbd className="rounded bg-[var(--color-bg)] px-1 font-mono">Esc</kbd> Deny
+            <kbd className="rounded bg-[var(--color-bg)] px-1 font-mono">⌘ Enter</kbd> Allow session
+            · <kbd className="rounded bg-[var(--color-bg)] px-1 font-mono">Esc</kbd> Deny
           </p>
         </div>
 

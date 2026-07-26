@@ -1,6 +1,7 @@
 import {
   Coffee,
   Database,
+  File,
   FileCode,
   FileImage,
   FileJson,
@@ -11,11 +12,10 @@ import {
   FileVideo,
   Globe,
   Hash,
+  type LucideIcon,
   Package as PackageIcon,
   Settings as SettingsIcon,
-  type LucideIcon,
 } from 'lucide-react';
-import { File } from 'lucide-react';
 
 /// File-type icon mapping — matched against extension first, then exact
 /// filename (Dockerfile/Makefile etc.) for VS Code parity.
@@ -150,7 +150,7 @@ const NAME_ICONS: Record<string, IconSpec> = {
   'bun.lock': { icon: FileLock, color: 'text-neutral-500' },
   'Cargo.toml': { icon: PackageIcon, color: 'text-orange-400' },
   'Cargo.lock': { icon: FileLock, color: 'text-orange-300' },
-  'Dockerfile': { icon: FileCode, color: 'text-blue-400' },
+  Dockerfile: { icon: FileCode, color: 'text-blue-400' },
   '.dockerignore': { icon: SettingsIcon, color: 'text-neutral-500' },
   '.gitignore': { icon: SettingsIcon, color: 'text-neutral-500' },
   '.gitattributes': { icon: SettingsIcon, color: 'text-neutral-500' },

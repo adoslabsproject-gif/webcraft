@@ -7,8 +7,8 @@ import { DbStudioView } from '../db-studio/DbStudioView';
 import { DevServerView } from '../dev-server/DevServerView';
 import { RunButton } from '../run/RunButton';
 import { ToolLibraryView } from '../tool-library/ToolLibraryView';
-import { setEditor } from './editor-controller';
 import { EditorTabs } from './EditorTabs';
+import { setEditor } from './editor-controller';
 import { InlineEditPrompt } from './InlineEditPrompt';
 import { registerInlineEditAction } from './inline-edit';
 import { useEditor } from './use-editor';
@@ -23,8 +23,8 @@ export function EditorArea() {
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const [inlinePromptOpen, setInlinePromptOpen] = useState(false);
   // Special tab kind (e.g. DB Studio) shortcuts the file-editor branch entirely.
-  const activeEditorTab = useAppStore((s) =>
-    s.editorTabs.find((t) => t.id === s.activeEditorTabId) ?? null,
+  const activeEditorTab = useAppStore(
+    (s) => s.editorTabs.find((t) => t.id === s.activeEditorTabId) ?? null,
   );
   const tabKind = activeEditorTab?.kind ?? 'file';
 
@@ -273,7 +273,9 @@ function BinaryPlaceholder({ name, path }: { name: string; path: string }) {
       <FileX className="h-12 w-12 text-[var(--color-fg-subtle)]" />
       <p className="text-sm text-[var(--color-fg-muted)]">Binary file — cannot display</p>
       <p className="font-mono text-[11px] text-[var(--color-fg-subtle)]">{name}</p>
-      <p className="select-text max-w-md font-mono text-[10px] text-[var(--color-fg-dim)]">{path}</p>
+      <p className="select-text max-w-md font-mono text-[10px] text-[var(--color-fg-dim)]">
+        {path}
+      </p>
     </div>
   );
 }

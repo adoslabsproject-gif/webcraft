@@ -20,11 +20,9 @@ export async function fetchBlame(absPath: string, cwd: string): Promise<BlameLin
   const cached = cache.get(key);
   if (cached) return cached;
   try {
-    const result = await Command.create(
-      'git',
-      ['blame', '--line-porcelain', '--', absPath],
-      { cwd },
-    ).execute();
+    const result = await Command.create('git', ['blame', '--line-porcelain', '--', absPath], {
+      cwd,
+    }).execute();
     if (result.code !== 0) return [];
     const lines = parsePorcelain(result.stdout);
     cache.set(key, lines);

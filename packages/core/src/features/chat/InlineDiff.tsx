@@ -48,7 +48,12 @@ export function tryParseDiffBlock(body: string): DiffLine[] | null {
     } else {
       oldNo++;
       newNo++;
-      out.push({ kind: 'context', oldNo, newNo, text: line.startsWith(' ') ? line.slice(1) : line });
+      out.push({
+        kind: 'context',
+        oldNo,
+        newNo,
+        text: line.startsWith(' ') ? line.slice(1) : line,
+      });
     }
   }
   return out;

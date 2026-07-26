@@ -11,7 +11,15 @@ export function registerSnippetCompletions(): void {
   if (registered) return;
   registered = true;
 
-  const languages = ['typescript', 'javascript', 'typescriptreact', 'javascriptreact', 'python', 'sql', 'html'];
+  const languages = [
+    'typescript',
+    'javascript',
+    'typescriptreact',
+    'javascriptreact',
+    'python',
+    'sql',
+    'html',
+  ];
   for (const lang of languages) {
     disposables.push(
       monaco.languages.registerCompletionItemProvider(lang, {
@@ -30,8 +38,7 @@ export function registerSnippetCompletions(): void {
               label: s.prefix,
               kind: monaco.languages.CompletionItemKind.Snippet,
               insertText: s.body.join('\n'),
-              insertTextRules:
-                monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+              insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
               documentation: { value: s.description, isTrusted: true },
               detail: s.builtin ? 'WebCraft built-in snippet' : 'User snippet',
               range,

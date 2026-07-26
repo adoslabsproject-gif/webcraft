@@ -9,10 +9,7 @@
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/test/**/*"
     ],
-    "sharedGlobals": [
-      "{workspaceRoot}/tsconfig.base.json",
-      "{workspaceRoot}/biome.json"
-    ]
+    "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json", "{workspaceRoot}/biome.json"]
   },
   "targetDefaults": {
     "build": {

@@ -31,7 +31,10 @@ export function DiffStreamView() {
       <div className="flex items-center justify-between border-b border-neutral-800 bg-neutral-950 px-3 py-1.5 text-xs">
         <span className="font-semibold uppercase tracking-wider text-neutral-400">
           Diff stream · {hunks.length} ·{' '}
-          <span className="text-amber-400">{hunks.filter((h) => h.status === 'pending').length}</span> pending
+          <span className="text-amber-400">
+            {hunks.filter((h) => h.status === 'pending').length}
+          </span>{' '}
+          pending
         </span>
         <div className="flex items-center gap-1">
           <button

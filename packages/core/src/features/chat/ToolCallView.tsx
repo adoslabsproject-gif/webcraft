@@ -19,9 +19,7 @@ export function ToolCallView({ call }: { call: ToolUseBlock }) {
         />
         <Wrench className="h-3 w-3 text-indigo-400" />
         <span className="font-mono text-indigo-300">{call.name}</span>
-        {!open && preview ? (
-          <span className="truncate text-neutral-500">{preview}</span>
-        ) : null}
+        {!open && preview ? <span className="truncate text-neutral-500">{preview}</span> : null}
       </button>
       {open ? (
         <pre className="overflow-x-auto border-t border-neutral-800 bg-neutral-950 p-2 font-mono text-[10px] text-neutral-300">

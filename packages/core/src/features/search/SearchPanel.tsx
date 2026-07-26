@@ -24,9 +24,7 @@ export function SearchPanel() {
     setError(null);
     setHits([]);
     try {
-      const raw = await tryRipgrep(pattern, projectRoot).catch(() =>
-        tryGrep(pattern, projectRoot),
-      );
+      const raw = await tryRipgrep(pattern, projectRoot).catch(() => tryGrep(pattern, projectRoot));
       const parsed: Hit[] = raw
         .split('\n')
         .filter(Boolean)
@@ -90,7 +88,12 @@ export function SearchPanel() {
                 <button
                   type="button"
                   onClick={() =>
-                    openTab({ id: h.path, path: h.path, label: h.path.split('/').pop() ?? h.path, dirty: false })
+                    openTab({
+                      id: h.path,
+                      path: h.path,
+                      label: h.path.split('/').pop() ?? h.path,
+                      dirty: false,
+                    })
                   }
                   className="block w-full px-3 py-1 text-left text-[11px] hover:bg-neutral-800/40"
                 >

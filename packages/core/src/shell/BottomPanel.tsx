@@ -1,11 +1,11 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { AlertCircle, Bot, ChevronDown } from 'lucide-react';
-import { useSubagentStore } from '../lib/ai/subagent-store';
 import { DiffStreamView } from '../features/diff-viewer/DiffStreamView';
 import { OutputPanel } from '../features/output/OutputPanel';
 import { ProblemsPanel } from '../features/problems/ProblemsPanel';
 import { SubagentPanel } from '../features/subagent/SubagentPanel';
 import { TerminalPanel } from '../features/terminal/TerminalPanel';
+import { useSubagentStore } from '../lib/ai/subagent-store';
 import type { BottomTab } from '../store/app-store';
 import { useAppStore } from '../store/app-store';
 
@@ -18,7 +18,9 @@ export function BottomPanel() {
   const problems = useAppStore((s) => s.problems);
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.filter((p) => p.severity === 'warning').length;
-  const subagentRunning = useSubagentStore((s) => s.transcripts.filter((t) => t.status === 'running').length);
+  const subagentRunning = useSubagentStore(
+    (s) => s.transcripts.filter((t) => t.status === 'running').length,
+  );
   const subagentTotal = useSubagentStore((s) => s.transcripts.length);
 
   if (!open) return null;
@@ -35,7 +37,11 @@ export function BottomPanel() {
             {(
               [
                 { id: 'terminal' as BottomTab, label: 'Terminal' },
-                { id: 'problems' as BottomTab, label: 'Problems', badge: errorCount + warningCount },
+                {
+                  id: 'problems' as BottomTab,
+                  label: 'Problems',
+                  badge: errorCount + warningCount,
+                },
                 { id: 'diff' as BottomTab, label: 'Diff' },
                 { id: 'output' as BottomTab, label: 'Output' },
                 { id: 'subagents' as BottomTab, label: 'Subagents', badge: subagentTotal },

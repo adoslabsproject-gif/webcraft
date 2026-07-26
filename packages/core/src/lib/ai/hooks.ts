@@ -1,5 +1,5 @@
-import { Command } from '@tauri-apps/plugin-shell';
 import { homeDir } from '@tauri-apps/api/path';
+import { Command } from '@tauri-apps/plugin-shell';
 import { fileExists } from '../ipc/fs';
 import { shellEnv } from './shell-env';
 import type { ToolUseBlock } from './types';
@@ -28,7 +28,12 @@ async function hookCandidatesFor(
   projectRoot: string | null,
 ): Promise<string[]> {
   const home = await homeDir();
-  const names = [`${phase}-${toolName}.sh`, `${phase}-${toolName}`, `${phase}-_all.sh`, `${phase}-_all`];
+  const names = [
+    `${phase}-${toolName}.sh`,
+    `${phase}-${toolName}`,
+    `${phase}-_all.sh`,
+    `${phase}-_all`,
+  ];
   const dirs: string[] = [];
   if (projectRoot) dirs.push(`${projectRoot}/.webcraft/hooks`);
   dirs.push(`${home}/.webcraft/hooks`);
@@ -62,7 +67,10 @@ export async function runPreHook(
     // Pipe JSON to the hook's stdin via /tmp file (Tauri's Command.create
     // does not expose stdin yet for execute()).
     const tmp = `/tmp/webcraft-hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
-    await Command.create('sh', ['-c', `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`]).execute();
+    await Command.create('sh', [
+      '-c',
+      `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`,
+    ]).execute();
     // Hook scripts routinely call the user's toolchain (pnpm, biome, …) —
     // give them the same resolved PATH as the agent tools.
     const env = await shellEnv(projectRoot);
@@ -72,7 +80,10 @@ export async function runPreHook(
     const reason = (r.stderr || r.stdout || `pre-hook exited ${r.code}`).slice(0, 1000);
     return { allowed: false, reason };
   } catch (e) {
-    return { allowed: true, reason: `pre-hook spawn failed: ${e instanceof Error ? e.message : e}` };
+    return {
+      allowed: true,
+      reason: `pre-hook spawn failed: ${e instanceof Error ? e.message : e}`,
+    };
   }
 }
 
@@ -93,7 +104,10 @@ export async function runPostHook(
       result: { content: result.content, isError: result.isError },
     });
     const tmp = `/tmp/webcraft-hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
-    await Command.create('sh', ['-c', `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`]).execute();
+    await Command.create('sh', [
+      '-c',
+      `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`,
+    ]).execute();
     const env = await shellEnv(projectRoot);
     const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`], { env }).execute();
     await Command.create('rm', ['-f', tmp]).execute();

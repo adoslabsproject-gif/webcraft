@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { extendedPath } from '../agent/runner';
 
@@ -50,7 +50,10 @@ class LspSession extends EventEmitter {
   private initialized = false;
   private capabilities: unknown = null;
 
-  constructor(spec: LspServerSpec, public language: string) {
+  constructor(
+    spec: LspServerSpec,
+    public language: string,
+  ) {
     super();
     // Extended PATH: the sidecar inherits Tauri's bare env, but language
     // servers are installed in npm-global/homebrew dirs.

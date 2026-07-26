@@ -28,13 +28,10 @@ export function MessageList({
         </div>
       ) : (
         messages.map((m, i) => {
-          const isLastAssistant = m.role === 'assistant' && i === messages.length - 1 && m.streaming;
+          const isLastAssistant =
+            m.role === 'assistant' && i === messages.length - 1 && m.streaming;
           return (
-            <MessageBubble
-              key={m.id}
-              message={m}
-              {...(isLastAssistant ? { streamingText } : {})}
-            />
+            <MessageBubble key={m.id} message={m} {...(isLastAssistant ? { streamingText } : {})} />
           );
         })
       )}

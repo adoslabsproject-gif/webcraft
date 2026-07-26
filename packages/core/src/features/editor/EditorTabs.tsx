@@ -1,6 +1,6 @@
 import { Database, Library, MessageSquare, Server, X } from 'lucide-react';
-import { fileIconFor } from '../file-tree/file-icons';
 import { useAppStore } from '../../store/app-store';
+import { fileIconFor } from '../file-tree/file-icons';
 
 const SPECIAL_TAB_VISUALS: Record<string, { Icon: typeof Database; color: string }> = {
   'db-studio': { Icon: Database, color: 'text-emerald-400' },

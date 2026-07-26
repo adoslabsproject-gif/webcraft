@@ -1,23 +1,23 @@
 import { useEffect } from 'react';
-import { ActivityBar } from './ActivityBar';
-import { BottomPanel } from './BottomPanel';
-import { Sidebar } from './Sidebar';
-import { StatusBar } from './StatusBar';
-import { TitleBar } from './TitleBar';
-import { Toolbar } from './Toolbar';
-import { wireMenuEvents } from './menu-events';
 import { ChatView } from '../features/chat/ChatView';
+import { initChatPersistence } from '../features/chat/chat-persistence';
 import { PermissionDialog } from '../features/chat/PermissionDialog';
 import { CommandPalette } from '../features/command-palette/CommandPalette';
 import { DialogHost } from '../features/dialog/DialogHost';
 import { EditorArea } from '../features/editor/EditorArea';
-import { useMonacoMarkers } from '../features/problems/use-monaco-markers';
-import { ErrorBoundary } from '../lib/ErrorBoundary';
 import { codebaseIndex } from '../features/embeddings/codebase-index';
-import { initScheduler } from '../lib/ai/scheduler';
 import { initAutoScan } from '../features/problems/auto-scan';
-import { initChatPersistence } from '../features/chat/chat-persistence';
+import { useMonacoMarkers } from '../features/problems/use-monaco-markers';
+import { initScheduler } from '../lib/ai/scheduler';
+import { ErrorBoundary } from '../lib/ErrorBoundary';
 import { useAppStore } from '../store/app-store';
+import { ActivityBar } from './ActivityBar';
+import { BottomPanel } from './BottomPanel';
+import { wireMenuEvents } from './menu-events';
+import { Sidebar } from './Sidebar';
+import { StatusBar } from './StatusBar';
+import { TitleBar } from './TitleBar';
+import { Toolbar } from './Toolbar';
 
 /// Top-level app layout — VSCode/Cursor inspired 3-pane:
 ///   TitleBar
@@ -88,28 +88,46 @@ export function AppShell() {
     <ErrorBoundary label="AppShell">
       <div className="flex h-screen w-screen flex-col bg-[var(--color-bg)] text-[var(--color-fg)]">
         <TitleBar />
-        <ErrorBoundary label="Toolbar"><Toolbar /></ErrorBoundary>
+        <ErrorBoundary label="Toolbar">
+          <Toolbar />
+        </ErrorBoundary>
         <div className="flex flex-1 overflow-hidden">
-          <ErrorBoundary label="ActivityBar"><ActivityBar /></ErrorBoundary>
+          <ErrorBoundary label="ActivityBar">
+            <ActivityBar />
+          </ErrorBoundary>
           {sidebarOpen ? (
-            <ErrorBoundary label="Sidebar"><Sidebar /></ErrorBoundary>
+            <ErrorBoundary label="Sidebar">
+              <Sidebar />
+            </ErrorBoundary>
           ) : null}
           <div className="flex flex-1 flex-col overflow-hidden">
             <div className="min-h-0 flex-1 overflow-hidden">
-              <ErrorBoundary label="EditorArea"><EditorArea /></ErrorBoundary>
+              <ErrorBoundary label="EditorArea">
+                <EditorArea />
+              </ErrorBoundary>
             </div>
-            <ErrorBoundary label="BottomPanel"><BottomPanel /></ErrorBoundary>
+            <ErrorBoundary label="BottomPanel">
+              <BottomPanel />
+            </ErrorBoundary>
           </div>
           {chatDockedRight ? (
             <aside className="flex w-[380px] shrink-0 flex-col border-l border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)]">
-              <ErrorBoundary label="ChatRightRail"><ChatView compact /></ErrorBoundary>
+              <ErrorBoundary label="ChatRightRail">
+                <ChatView compact />
+              </ErrorBoundary>
             </aside>
           ) : null}
         </div>
         <StatusBar />
-        <ErrorBoundary label="CommandPalette"><CommandPalette /></ErrorBoundary>
-        <ErrorBoundary label="PermissionDialog"><PermissionDialog /></ErrorBoundary>
-        <ErrorBoundary label="DialogHost"><DialogHost /></ErrorBoundary>
+        <ErrorBoundary label="CommandPalette">
+          <CommandPalette />
+        </ErrorBoundary>
+        <ErrorBoundary label="PermissionDialog">
+          <PermissionDialog />
+        </ErrorBoundary>
+        <ErrorBoundary label="DialogHost">
+          <DialogHost />
+        </ErrorBoundary>
       </div>
     </ErrorBoundary>
   );

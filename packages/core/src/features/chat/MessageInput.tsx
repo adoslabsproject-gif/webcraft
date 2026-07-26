@@ -2,7 +2,7 @@ import { ImageIcon, Mic, MicOff, Send, Square, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../store/app-store';
 import { MentionMenu, type MentionTarget } from './MentionMenu';
-import { createDictation, isDictationSupported, type Dictation } from './voice-dictation';
+import { createDictation, type Dictation, isDictationSupported } from './voice-dictation';
 
 /// Multiline input with image attachments (Liara routes through a vision
 /// sidecar / Anthropic uses native multimodal). Image accepted via:
@@ -52,7 +52,8 @@ export function MessageInput({
     if (!isDictationSupported()) return;
     dictationBaseRef.current = text;
     const dict = createDictation({
-      onInterim: (t) => setText(`${dictationBaseRef.current}${dictationBaseRef.current ? ' ' : ''}${t}`),
+      onInterim: (t) =>
+        setText(`${dictationBaseRef.current}${dictationBaseRef.current ? ' ' : ''}${t}`),
       onFinal: (t) => {
         dictationBaseRef.current = `${dictationBaseRef.current}${dictationBaseRef.current ? ' ' : ''}${t}`;
         setText(dictationBaseRef.current);
@@ -70,9 +71,12 @@ export function MessageInput({
     setListening(true);
   }
 
-  useEffect(() => () => {
-    dictationRef.current?.destroy();
-  }, []);
+  useEffect(
+    () => () => {
+      dictationRef.current?.destroy();
+    },
+    [],
+  );
 
   // External prefill (Problems "Fix with AI", welcome-screen prompt cards).
   // Store-based rather than a window event: the prefill is set BEFORE the
@@ -95,7 +99,7 @@ export function MessageInput({
     const caret = el.selectionStart ?? text.length;
     const before = text.slice(0, caret);
     const m = /(?:^|\s)@([\w./:-]*)$/.exec(before);
-    setMentionQuery(m ? m[1] ?? '' : null);
+    setMentionQuery(m ? (m[1] ?? '') : null);
   }, [text]);
 
   function pickMention(target: MentionTarget) {
@@ -107,7 +111,8 @@ export function MessageInput({
     const m = /(?:^|\s)@([\w./:-]*)$/.exec(before);
     if (!m) return;
     const start = before.length - m[0].trimStart().length;
-    const newBefore = before.slice(0, start) + (before[start - 1] === '@' ? '' : '') + target.insert + ' ';
+    const newBefore =
+      before.slice(0, start) + (before[start - 1] === '@' ? '' : '') + target.insert + ' ';
     const next = newBefore + after;
     setText(next);
     setMentionQuery(null);
@@ -130,7 +135,10 @@ export function MessageInput({
   async function addFile(file: File) {
     if (!file.type.startsWith('image/')) return;
     const mediaType =
-      file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/gif' || file.type === 'image/webp'
+      file.type === 'image/jpeg' ||
+      file.type === 'image/png' ||
+      file.type === 'image/gif' ||
+      file.type === 'image/webp'
         ? (file.type as PendingImage['mediaType'])
         : 'image/png';
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -296,7 +304,11 @@ export function MessageInput({
               : 'bg-indigo-600 hover:bg-indigo-500'
           }`}
         >
-          {showStop ? <Square className="h-3.5 w-3.5 fill-current" /> : <Send className="h-3.5 w-3.5" />}
+          {showStop ? (
+            <Square className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <Send className="h-3.5 w-3.5" />
+          )}
         </button>
       </div>
     </form>

@@ -80,9 +80,7 @@ export function registerAiCodeLens(): monaco.IDisposable {
 
   // Register Monaco editor commands that fire DOM events the ChatView listens to.
   const dispatch = (kind: 'explain' | 'test' | 'refactor', name: string, path: string) =>
-    window.dispatchEvent(
-      new CustomEvent('webcraft:codelens', { detail: { kind, name, path } }),
-    );
+    window.dispatchEvent(new CustomEvent('webcraft:codelens', { detail: { kind, name, path } }));
 
   disposables.push(
     monaco.editor.registerCommand('webcraft.codelens.explain', (_, name: string, path: string) =>

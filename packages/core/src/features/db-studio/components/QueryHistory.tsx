@@ -19,7 +19,10 @@ export function QueryHistory() {
   return (
     <ul className="h-full overflow-auto divide-y divide-neutral-900">
       {history.map((q) => (
-        <li key={q.id} className="flex items-start gap-2 px-3 py-2 text-[11px] hover:bg-neutral-900/60">
+        <li
+          key={q.id}
+          className="flex items-start gap-2 px-3 py-2 text-[11px] hover:bg-neutral-900/60"
+        >
           <button
             type="button"
             onClick={() => {

@@ -1,4 +1,5 @@
 import {
+  addEdge,
   Background,
   Controls,
   type Edge,
@@ -9,7 +10,6 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
-  addEdge,
   useEdgesState,
   useNodesState,
 } from '@xyflow/react';
@@ -77,7 +77,10 @@ function TableNodeView({ id, data, selected }: NodeProps<TableNode>) {
       </div>
       <ul className="text-[11px]">
         {data.columns.map((c, i) => (
-          <li key={i} className="group flex items-center gap-1 border-b border-[var(--color-border-subtle)] px-2 py-0.5 last:border-b-0">
+          <li
+            key={i}
+            className="group flex items-center gap-1 border-b border-[var(--color-border-subtle)] px-2 py-0.5 last:border-b-0"
+          >
             {c.pk ? <Key className="h-2.5 w-2.5 text-amber-400" /> : <span className="w-2.5" />}
             <input
               type="text"
@@ -101,8 +104,16 @@ function TableNodeView({ id, data, selected }: NodeProps<TableNode>) {
           </li>
         ))}
       </ul>
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !bg-[var(--color-accent)]" />
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !bg-[var(--color-accent)]" />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-2 !w-2 !bg-[var(--color-accent)]"
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-2 !w-2 !bg-[var(--color-accent)]"
+      />
     </div>
   );
 }
@@ -113,7 +124,9 @@ function generateDdl(nodes: TableNode[], edges: Edge[]): string {
   const lines: string[] = [];
   for (const n of nodes) {
     const cols = n.data.columns
-      .map((c) => `  ${c.name} ${c.type}${c.pk ? ' PRIMARY KEY' : ''}${c.nullable ? '' : ' NOT NULL'}`)
+      .map(
+        (c) => `  ${c.name} ${c.type}${c.pk ? ' PRIMARY KEY' : ''}${c.nullable ? '' : ' NOT NULL'}`,
+      )
       .join(',\n');
     lines.push(`CREATE TABLE ${n.data.name} (\n${cols}\n);`);
   }
@@ -166,7 +179,15 @@ function SchemaDesignerInner({ onClose }: { onClose: () => void }) {
                 ...n,
                 data: {
                   ...n.data,
-                  columns: [...n.data.columns, { name: `col_${n.data.columns.length}`, type: 'TEXT', pk: false, nullable: true }],
+                  columns: [
+                    ...n.data.columns,
+                    {
+                      name: `col_${n.data.columns.length}`,
+                      type: 'TEXT',
+                      pk: false,
+                      nullable: true,
+                    },
+                  ],
                 },
               }
             : n,
@@ -199,14 +220,22 @@ function SchemaDesignerInner({ onClose }: { onClose: () => void }) {
     onAiSuggest: async (id: string) => {
       const node = nodes.find((n) => n.id === id);
       if (!node) return;
-      const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
+      const provider = createProvider({
+        provider: activeProvider,
+        apiKey: apiKeys[activeProvider],
+      });
       if (!provider) return;
       let buf = '';
       await provider.stream({
         model,
         system: AI_SYSTEM,
         messages: [
-          { id: 'u', role: 'user', content: [{ type: 'text', text: node.data.name }], createdAt: Date.now() },
+          {
+            id: 'u',
+            role: 'user',
+            content: [{ type: 'text', text: node.data.name }],
+            createdAt: Date.now(),
+          },
         ],
         callbacks: {
           onText: (d) => {

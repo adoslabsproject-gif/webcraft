@@ -11,7 +11,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useAppStore, type Problem } from '../../store/app-store';
+import { type Problem, useAppStore } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
 import { revealLocation } from '../editor/editor-controller';
 import { runProjectScan } from './auto-scan';
@@ -365,15 +365,13 @@ interface FixHint {
 function suggestFix(message: string): FixHint | null {
   if (/Unable to load schema/i.test(message)) {
     return {
-      text:
-        'Monaco JSON validator tries to download the $schema URL. Tauri CSP blocks remote fetch. JSON is still validated locally. Safe to ignore or remove the "$schema" key.',
+      text: 'Monaco JSON validator tries to download the $schema URL. Tauri CSP blocks remote fetch. JSON is still validated locally. Safe to ignore or remove the "$schema" key.',
       codeBlock: '"$schema": "..." → delete this line',
     };
   }
   if (/Parameter '.*' implicitly has an 'any' type/.test(message)) {
     return {
-      text:
-        'TypeScript strict mode requires every parameter to have an explicit type. Add a type annotation:',
+      text: 'TypeScript strict mode requires every parameter to have an explicit type. Add a type annotation:',
       codeBlock: 'function foo(x: number) {} // instead of function foo(x) {}',
     };
   }
@@ -382,20 +380,17 @@ function suggestFix(message: string): FixHint | null {
   }
   if (/Type '(.*)' is not assignable to type '(.*)'/.test(message)) {
     return {
-      text:
-        "Type mismatch. Either change the value, widen the target type, or assert with `as Target`.",
+      text: 'Type mismatch. Either change the value, widen the target type, or assert with `as Target`.',
     };
   }
   if (/'(.*)' is declared but its value is never read/.test(message)) {
     return {
-      text:
-        'Unused. Delete it, or prefix the name with an underscore to silence (e.g. `_unused`).',
+      text: 'Unused. Delete it, or prefix the name with an underscore to silence (e.g. `_unused`).',
     };
   }
   if (/Property '(.*)' does not exist on type/.test(message)) {
     return {
-      text:
-        "Property not declared. Add to interface, narrow with type guard, or use optional chaining `?.`.",
+      text: 'Property not declared. Add to interface, narrow with type guard, or use optional chaining `?.`.',
     };
   }
   if (/Expected (\d+) arguments?, but got (\d+)/.test(message)) {

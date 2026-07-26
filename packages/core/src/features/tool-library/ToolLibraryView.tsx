@@ -1,23 +1,10 @@
 import Editor from '@monaco-editor/react';
-import {
-  Check,
-  Copy,
-  Download,
-  Filter,
-  Library,
-  Save,
-  Search,
-} from 'lucide-react';
+import { Check, Copy, Download, Filter, Library, Save, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { writeFile } from '../../lib/ipc/fs';
 import { useAppStore } from '../../store/app-store';
 import { alert, prompt } from '../dialog/dialog-store';
-import {
-  CATEGORIES,
-  TOOL_TEMPLATES,
-  type ToolCategory,
-  type ToolTemplate,
-} from './templates';
+import { CATEGORIES, TOOL_TEMPLATES, type ToolCategory, type ToolTemplate } from './templates';
 
 /// Full-area "Tool Library" tab — curated mini-packs of state-of-the-art
 /// AI tool code (MCP, function calling, RAG, agentic, multimodal, etc.).

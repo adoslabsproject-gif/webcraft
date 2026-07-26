@@ -23,7 +23,11 @@ export async function discoverProjectDatabases(root: string): Promise<Discovered
     const k = provider as Discovered['kind'];
     if (['postgres', 'postgresql', 'mysql', 'sqlite', 'mongo', 'mongodb'].includes(provider)) {
       out.push({
-        kind: provider.startsWith('postgres') ? 'postgres' : (provider.startsWith('mongo') ? 'mongo' : k),
+        kind: provider.startsWith('postgres')
+          ? 'postgres'
+          : provider.startsWith('mongo')
+            ? 'mongo'
+            : k,
         source: 'prisma/schema.prisma',
       });
     }
@@ -34,16 +38,20 @@ export async function discoverProjectDatabases(root: string): Promise<Discovered
       source: 'drizzle.config.ts',
     });
   });
-  await scanFile(`${root}/docker-compose.yml`, /image:\s*(postgres|mysql|mongo|redis|mariadb)/g, (img) => {
-    const k = img === 'mariadb' ? 'mysql' : (img as Discovered['kind']);
-    out.push({ kind: k, source: `docker-compose service: ${img}` });
-  });
+  await scanFile(
+    `${root}/docker-compose.yml`,
+    /image:\s*(postgres|mysql|mongo|redis|mariadb)/g,
+    (img) => {
+      const k = img === 'mariadb' ? 'mysql' : (img as Discovered['kind']);
+      out.push({ kind: k, source: `docker-compose service: ${img}` });
+    },
+  );
 
   // Walk root looking for *.db / *.sqlite (top level only — keep cheap)
   try {
     const entries = await listDir(root);
     for (const e of entries) {
-      if (!e.isDirectory && (/\.(db|sqlite|sqlite3)$/i.test(e.name))) {
+      if (!e.isDirectory && /\.(db|sqlite|sqlite3)$/i.test(e.name)) {
         out.push({ kind: 'sqlite', source: e.name, file: e.path });
       }
     }

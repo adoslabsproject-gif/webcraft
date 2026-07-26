@@ -26,13 +26,25 @@ function analyze(sql: string): StmtAnalysis[] {
     .map((stmt) => {
       const up = stmt.toUpperCase();
       if (/^DROP\s+(TABLE|SCHEMA|DATABASE)/.test(up)) {
-        return { sql: stmt, risk: 'destructive' as Risk, reason: 'Drops table/schema — irreversible data loss.' };
+        return {
+          sql: stmt,
+          risk: 'destructive' as Risk,
+          reason: 'Drops table/schema — irreversible data loss.',
+        };
       }
       if (/DROP\s+COLUMN/.test(up)) {
-        return { sql: stmt, risk: 'destructive' as Risk, reason: 'Drops column — data in that column is lost.' };
+        return {
+          sql: stmt,
+          risk: 'destructive' as Risk,
+          reason: 'Drops column — data in that column is lost.',
+        };
       }
       if (/ALTER\s+TABLE.*RENAME/.test(up)) {
-        return { sql: stmt, risk: 'lossy' as Risk, reason: 'Rename can break downstream consumers (views, code).' };
+        return {
+          sql: stmt,
+          risk: 'lossy' as Risk,
+          reason: 'Rename can break downstream consumers (views, code).',
+        };
       }
       if (/TRUNCATE/.test(up)) {
         return { sql: stmt, risk: 'destructive' as Risk, reason: 'TRUNCATE deletes all rows.' };
@@ -51,7 +63,9 @@ function autoDown(stmt: string): string {
   const up = stmt.trim().toUpperCase();
   if (up.startsWith('CREATE TABLE')) {
     const m = /CREATE\s+TABLE(?:\s+IF\s+NOT\s+EXISTS)?\s+([\w."]+)/i.exec(stmt);
-    return m ? `DROP TABLE IF EXISTS ${m[1]};` : `-- manual down required for: ${stmt.slice(0, 60)}…`;
+    return m
+      ? `DROP TABLE IF EXISTS ${m[1]};`
+      : `-- manual down required for: ${stmt.slice(0, 60)}…`;
   }
   if (up.startsWith('ALTER TABLE')) {
     return `-- manual down required for: ${stmt.slice(0, 80)}…`;

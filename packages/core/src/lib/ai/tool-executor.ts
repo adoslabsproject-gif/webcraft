@@ -1,12 +1,20 @@
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
-import { Command, type Child } from '@tauri-apps/plugin-shell';
-import { useAppStore } from '../../store/app-store';
+import { type Child, Command } from '@tauri-apps/plugin-shell';
 import { recordHunk } from '../../features/diff-viewer/diff-store';
 import { useTaskStore } from '../../features/tasks/task-store';
-import { createDir, fileExists, listDir, readFile, removePath, renamePath, writeFile } from '../ipc/fs';
-import { requirePermission } from './permissions';
+import { useAppStore } from '../../store/app-store';
+import {
+  createDir,
+  fileExists,
+  listDir,
+  readFile,
+  removePath,
+  renamePath,
+  writeFile,
+} from '../ipc/fs';
 import { renderUnifiedDiff } from './diff-format';
 import { runPostHook, runPreHook } from './hooks';
+import { requirePermission } from './permissions';
 import { shellEnv } from './shell-env';
 import type { ToolUseBlock } from './types';
 
@@ -53,7 +61,9 @@ const ALIASES: Record<string, string> = {
   cp: 'copy_file',
 };
 
-export async function executeTool(call: ToolUseBlock): Promise<{ content: string; isError: boolean }> {
+export async function executeTool(
+  call: ToolUseBlock,
+): Promise<{ content: string; isError: boolean }> {
   try {
     const canonical = ALIASES[call.name] ?? call.name;
     const handler = HANDLERS[canonical];
@@ -96,15 +106,19 @@ function editDistance(a: string, b: string): number {
   for (let j = 0; j <= n; j++) dp[0]![j] = j;
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i]![j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1]![j - 1]!
-        : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
+      dp[i]![j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1]![j - 1]!
+          : 1 + Math.min(dp[i - 1]![j]!, dp[i]![j - 1]!, dp[i - 1]![j - 1]!);
     }
   }
   return dp[m]![n]!;
 }
 
-const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string; isError: boolean }>> = {
+const HANDLERS: Record<
+  string,
+  (call: ToolUseBlock) => Promise<{ content: string; isError: boolean }>
+> = {
   // ── Filesystem ──────────────────────────────────────────────────────
   read_file: async (c) => {
     const path = str(c, 'path');
@@ -192,7 +206,9 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
         `old_string is not unique in ${path} (${occurrences} occurrences). Pass replace_all="true" or give more context.`,
       );
     }
-    const next = replaceAll ? file.split(oldString).join(newString) : file.replace(oldString, newString);
+    const next = replaceAll
+      ? file.split(oldString).join(newString)
+      : file.replace(oldString, newString);
     const granted = await requirePermission({
       id: `edit_${path}_${Date.now()}`,
       category: 'edit-files',
@@ -242,7 +258,12 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     await writeFile(path, current);
     recordHunk({ path, oldContent: original, newContent: current, kind: 'edit' });
     useAppStore.getState().notifyFsChange();
-    const diff = renderUnifiedDiff({ path, oldContent: original, newContent: current, kind: 'edit' });
+    const diff = renderUnifiedDiff({
+      path,
+      oldContent: original,
+      newContent: current,
+      kind: 'edit',
+    });
     return ok(`Applied ${edits.length} edits to ${path}\n\n${diff}`);
   },
 
@@ -275,16 +296,35 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
         category: 'edit-files',
         title: f.oldPath === '/dev/null' ? 'Create file from patch' : 'Apply patch to file',
         detail: `${targetPath} (${f.hunks.length} hunk${f.hunks.length === 1 ? '' : 's'})`,
-        preview: renderUnifiedDiff({ path: targetPath, oldContent: current, newContent: applied, kind: f.oldPath === '/dev/null' ? 'write' : 'edit' }),
+        preview: renderUnifiedDiff({
+          path: targetPath,
+          oldContent: current,
+          newContent: applied,
+          kind: f.oldPath === '/dev/null' ? 'write' : 'edit',
+        }),
       });
       if (!granted) return err(`User denied permission for ${targetPath}.`);
       await writeFile(targetPath, applied);
       readSession.add(targetPath);
-      recordHunk({ path: targetPath, oldContent: current, newContent: applied, kind: f.oldPath === '/dev/null' ? 'write' : 'edit' });
-      summary.push(renderUnifiedDiff({ path: targetPath, oldContent: current, newContent: applied, kind: f.oldPath === '/dev/null' ? 'write' : 'edit' }));
+      recordHunk({
+        path: targetPath,
+        oldContent: current,
+        newContent: applied,
+        kind: f.oldPath === '/dev/null' ? 'write' : 'edit',
+      });
+      summary.push(
+        renderUnifiedDiff({
+          path: targetPath,
+          oldContent: current,
+          newContent: applied,
+          kind: f.oldPath === '/dev/null' ? 'write' : 'edit',
+        }),
+      );
     }
     useAppStore.getState().notifyFsChange();
-    return ok(`Applied patch to ${files.length} file${files.length === 1 ? '' : 's'}.\n\n${summary.join('\n\n')}`);
+    return ok(
+      `Applied patch to ${files.length} file${files.length === 1 ? '' : 's'}.\n\n${summary.join('\n\n')}`,
+    );
   },
 
   glob: async (c) => {
@@ -293,8 +333,7 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     // Rejecting one of them produced "missing string arg" retry loops.
     const pattern = optStr(c, 'pattern') ?? optStr(c, 'glob');
     if (!pattern) return err(`Tool ${c.name}: provide a glob "pattern" (e.g. **/*.ts).`);
-    const path =
-      optStr(c, 'path') ?? optStr(c, 'cwd') ?? useAppStore.getState().projectRoot;
+    const path = optStr(c, 'path') ?? optStr(c, 'cwd') ?? useAppStore.getState().projectRoot;
     if (!path) return err('No project root open. Open a folder first.');
     const env = await shellEnv(path);
     // ripgrep --files + glob filter, ordered by mtime; POSIX `find` fallback
@@ -594,7 +633,9 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
   run_build: async () => runScript('build'),
 
   lint_file: async (c) =>
-    runShell(`pnpm exec biome check ${str(c, 'path')} || npx eslint ${str(c, 'path')} || echo "(no linter available)"`),
+    runShell(
+      `pnpm exec biome check ${str(c, 'path')} || npx eslint ${str(c, 'path')} || echo "(no linter available)"`,
+    ),
   type_check: async () => runShell('pnpm exec tsc --noEmit || npx tsc --noEmit'),
   format_file: async (c) =>
     runShell(
@@ -625,7 +666,9 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     store.setActiveConnection(str(c, 'connection_id'));
     const result = await store.runArbitrary(str(c, 'sql'));
     store.setActiveConnection(original);
-    return result.error ? err(result.error) : ok(JSON.stringify({ columns: result.columns, rows: result.rows, ms: result.durationMs }));
+    return result.error
+      ? err(result.error)
+      : ok(JSON.stringify({ columns: result.columns, rows: result.rows, ms: result.durationMs }));
   },
   db_schema: async (c) => {
     const { useDbStore } = await import('../../features/db-studio/db-store');
@@ -644,7 +687,9 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     store.setActiveConnection(str(c, 'connection_id'));
     const limit = optInt(c, 'limit') ?? 50;
     const offset = optInt(c, 'offset') ?? 0;
-    const r = await store.runArbitrary(`SELECT * FROM ${str(c, 'table')} LIMIT ${limit} OFFSET ${offset};`);
+    const r = await store.runArbitrary(
+      `SELECT * FROM ${str(c, 'table')} LIMIT ${limit} OFFSET ${offset};`,
+    );
     store.setActiveConnection(original);
     return r.error ? err(r.error) : ok(JSON.stringify({ columns: r.columns, rows: r.rows }));
   },
@@ -668,13 +713,14 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
   web_search: async (c) => {
     const query = str(c, 'query');
     const max = optInt(c, 'max_results') ?? 10;
-    const res = await tauriFetch(
-      `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`,
-      { method: 'GET', headers: { 'User-Agent': 'Mozilla/5.0 WebCraft' } },
-    );
+    const res = await tauriFetch(`https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers: { 'User-Agent': 'Mozilla/5.0 WebCraft' },
+    });
     const html = await res.text();
     const results: Array<{ title: string; url: string; snippet: string }> = [];
-    const re = /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
+    const re =
+      /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/gi;
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null && results.length < max) {
       const rawUrl = m[1] ?? '';
@@ -761,9 +807,18 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
   },
   task_list: async (c) => {
     const filterStatus = optStr(c, 'filter_status');
-    const tasks = useTaskStore
-      .getState()
-      .list(filterStatus ? { status: filterStatus as 'pending' | 'in_progress' | 'completed' | 'blocked' | 'cancelled' } : undefined);
+    const tasks = useTaskStore.getState().list(
+      filterStatus
+        ? {
+            status: filterStatus as
+              | 'pending'
+              | 'in_progress'
+              | 'completed'
+              | 'blocked'
+              | 'cancelled',
+          }
+        : undefined,
+    );
     return ok(tasks.map((t) => `[${t.status}] ${t.id} — ${t.title}`).join('\n') || '(no tasks)');
   },
   task_stop: async (c) => {
@@ -780,7 +835,8 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     const { runSubagent } = await import('./subagent');
     const title = str(c, 'title');
     const task = str(c, 'task');
-    const systemPrompt = optStr(c, 'system_prompt') ??
+    const systemPrompt =
+      optStr(c, 'system_prompt') ??
       `You are a focused research subagent for a senior software engineer.
 Your job: gather facts from the current codebase about the task below.
 Use read-only tools (read_file, glob, grep, list_directory, find_references,
@@ -914,9 +970,18 @@ Return your final answer as concise text (max 400 words). No questions back.`;
   mcp_list_servers: async () => {
     try {
       const { sidecarGet } = await import('../ipc/sidecar');
-      const { servers } = await sidecarGet<{ servers: Array<{ name: string; status: string; tools: Array<{ name: string }>; error?: string }> }>('/mcp/servers');
+      const { servers } = await sidecarGet<{
+        servers: Array<{
+          name: string;
+          status: string;
+          tools: Array<{ name: string }>;
+          error?: string;
+        }>;
+      }>('/mcp/servers');
       if (!servers || servers.length === 0) {
-        return ok('No MCP servers configured. Add servers in ~/.webcraft/mcp.json — see docs/MCP.md.');
+        return ok(
+          'No MCP servers configured. Add servers in ~/.webcraft/mcp.json — see docs/MCP.md.',
+        );
       }
       const lines = servers.map(
         (s) => `[${s.status}] ${s.name}${s.error ? ` — ${s.error}` : ''} · ${s.tools.length} tools`,
@@ -987,9 +1052,14 @@ function stripHtml(s: string): string {
 async function runShell(cmd: string): Promise<{ content: string; isError: boolean }> {
   const cwd = useAppStore.getState().projectRoot ?? undefined;
   const env = await shellEnv(cwd ?? null);
-  const result = await Command.create('sh', ['-c', cmd], { ...(cwd ? { cwd } : {}), env }).execute();
+  const result = await Command.create('sh', ['-c', cmd], {
+    ...(cwd ? { cwd } : {}),
+    env,
+  }).execute();
   const combined = [result.stdout, result.stderr].filter(Boolean).join('\n');
-  return result.code === 0 ? ok(combined || '(no output)') : err(`Exit ${result.code}:\n${combined}`);
+  return result.code === 0
+    ? ok(combined || '(no output)')
+    : err(`Exit ${result.code}:\n${combined}`);
 }
 async function runGit(args: string[]): Promise<{ content: string; isError: boolean }> {
   const cwd = useAppStore.getState().projectRoot ?? undefined;
@@ -1041,10 +1111,14 @@ function parseUnifiedPatch(text: string): PatchFile[] {
   while (i < lines.length) {
     while (i < lines.length && !lines[i]!.startsWith('--- ')) i++;
     if (i >= lines.length) break;
-    const oldPath = lines[i]!.slice(4).replace(/^[ab]\//, '').trim();
+    const oldPath = lines[i]!.slice(4)
+      .replace(/^[ab]\//, '')
+      .trim();
     i++;
     if (i >= lines.length || !lines[i]!.startsWith('+++ ')) break;
-    const newPath = lines[i]!.slice(4).replace(/^[ab]\//, '').trim();
+    const newPath = lines[i]!.slice(4)
+      .replace(/^[ab]\//, '')
+      .trim();
     i++;
     const file: PatchFile = { oldPath, newPath, hunks: [] };
     while (i < lines.length && lines[i]!.startsWith('@@')) {

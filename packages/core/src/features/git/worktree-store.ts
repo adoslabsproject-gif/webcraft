@@ -99,7 +99,8 @@ export const useWorktreeStore = create<WorktreeState>((set, get) => ({
   async add(repoRoot, branchName, opts) {
     set({ busy: true, error: null });
     try {
-      const baseDir = opts?.checkoutPath ?? `${repoRoot}/../${repoRoot.split('/').pop()}-${branchName}`;
+      const baseDir =
+        opts?.checkoutPath ?? `${repoRoot}/../${repoRoot.split('/').pop()}-${branchName}`;
       const args = ['worktree', 'add'];
       if (opts?.fromBranch) {
         args.push(baseDir, '-b', branchName, opts.fromBranch);

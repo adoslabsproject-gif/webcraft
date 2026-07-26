@@ -119,9 +119,7 @@ export function DialogHost() {
             type="button"
             onClick={confirm}
             className={`rounded-md px-3 py-1.5 text-xs font-medium text-white ${
-              pending.danger
-                ? 'bg-rose-600 hover:bg-rose-500'
-                : 'bg-indigo-600 hover:bg-indigo-500'
+              pending.danger ? 'bg-rose-600 hover:bg-rose-500' : 'bg-indigo-600 hover:bg-indigo-500'
             }`}
           >
             {pending.confirmLabel ?? (pending.kind === 'alert' ? 'OK' : 'Confirm')}

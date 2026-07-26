@@ -147,7 +147,8 @@ export class OpenAiCompatProvider {
                 usage?: { prompt_tokens?: number; completion_tokens?: number };
               };
               if (json.usage) {
-                if (typeof json.usage.prompt_tokens === 'number') usageInput = json.usage.prompt_tokens;
+                if (typeof json.usage.prompt_tokens === 'number')
+                  usageInput = json.usage.prompt_tokens;
                 if (typeof json.usage.completion_tokens === 'number')
                   usageOutput = json.usage.completion_tokens;
               }
@@ -170,7 +171,8 @@ export class OpenAiCompatProvider {
                 if (tc.function?.arguments) p.argsBuffer += tc.function.arguments;
               }
               if (choice?.finish_reason) {
-                stopReason = choice.finish_reason === 'tool_calls' ? 'tool_use' : choice.finish_reason;
+                stopReason =
+                  choice.finish_reason === 'tool_calls' ? 'tool_use' : choice.finish_reason;
               }
             } catch {
               /* skip heartbeats / non-JSON lines */
@@ -234,9 +236,7 @@ type OpenAiUserContentPart =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } };
 
-function toOpenAiMessages(
-  m: ChatMessage,
-): Array<
+function toOpenAiMessages(m: ChatMessage): Array<
   | { role: 'user' | 'system'; content: string | OpenAiUserContentPart[] }
   | { role: 'assistant'; content: string }
   | {
@@ -273,7 +273,10 @@ function toOpenAiMessages(
       // server compat). If image present, send as multimodal array.
       const content: string | OpenAiUserContentPart[] = hasImage
         ? parts
-        : parts.filter((p): p is { type: 'text'; text: string } => p.type === 'text').map((p) => p.text).join('\n\n');
+        : parts
+            .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+            .map((p) => p.text)
+            .join('\n\n');
       out.push({ role: 'user', content });
     }
     return out;

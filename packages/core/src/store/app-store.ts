@@ -148,29 +148,26 @@ export const useAppStore = create<AppState>((set) => ({
     set((s: AppState) => {
       const remaining = s.editorTabs.filter((t) => t.id !== id);
       const nextActive =
-        s.activeEditorTabId === id
-          ? (remaining.at(-1)?.id ?? null)
-          : s.activeEditorTabId;
+        s.activeEditorTabId === id ? (remaining.at(-1)?.id ?? null) : s.activeEditorTabId;
       return { editorTabs: remaining, activeEditorTabId: nextActive };
     }),
   setActiveEditorTab: (id: string | null) => set({ activeEditorTabId: id }),
   setProjectRoot: (root: string | null) => set({ projectRoot: root }),
   openDbStudioTab: () =>
     set((s: AppState) => openOrFocusSingleton(s, DB_STUDIO_TAB_ID, 'DB Studio', 'db-studio')),
-  openChatTab: () =>
-    set((s: AppState) => openOrFocusSingleton(s, CHAT_TAB_ID, 'AI Chat', 'chat')),
+  openChatTab: () => set((s: AppState) => openOrFocusSingleton(s, CHAT_TAB_ID, 'AI Chat', 'chat')),
   openDevServerTab: () =>
     set((s: AppState) => openOrFocusSingleton(s, DEV_SERVER_TAB_ID, 'Dev Server', 'dev-server')),
   openToolLibraryTab: () =>
-    set((s: AppState) => openOrFocusSingleton(s, TOOL_LIBRARY_TAB_ID, 'Tool Library', 'tool-library')),
+    set((s: AppState) =>
+      openOrFocusSingleton(s, TOOL_LIBRARY_TAB_ID, 'Tool Library', 'tool-library'),
+    ),
   newUntitledFile: () =>
     set((s: AppState) => {
       // Find the next available untitled-N counter so multiple New File clicks
       // produce distinct tabs (Untitled-1, Untitled-2, …).
       const taken = new Set(
-        s.editorTabs
-          .filter((t) => t.id.startsWith('webcraft://untitled-'))
-          .map((t) => t.id),
+        s.editorTabs.filter((t) => t.id.startsWith('webcraft://untitled-')).map((t) => t.id),
       );
       let n = 1;
       while (taken.has(`webcraft://untitled-${n}`)) n++;

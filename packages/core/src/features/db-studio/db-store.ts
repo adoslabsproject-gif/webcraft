@@ -74,7 +74,12 @@ const STATIC_CONNS: DbConnection[] = [
   { id: 'mysql-default', name: 'Local MySQL (portable)', kind: 'mysql', available: false },
   { id: 'mariadb-default', name: 'Local MariaDB (portable)', kind: 'mariadb', available: false },
   { id: 'redis-default', name: 'Local Redis (portable)', kind: 'redis', available: false },
-  { id: 'surrealdb-default', name: 'Local SurrealDB (multi-model)', kind: 'surrealdb', available: false },
+  {
+    id: 'surrealdb-default',
+    name: 'Local SurrealDB (multi-model)',
+    kind: 'surrealdb',
+    available: false,
+  },
   { id: 'libsql-default', name: 'Local LibSQL (Turso fork)', kind: 'libsql', available: false },
 ];
 

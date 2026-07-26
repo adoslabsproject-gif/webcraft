@@ -1,4 +1,4 @@
-import { Command, type Child } from '@tauri-apps/plugin-shell';
+import { type Child, Command } from '@tauri-apps/plugin-shell';
 import { create } from 'zustand';
 
 /// Dev server orchestration — spawns project runtimes (Node/Static/PHP/
@@ -30,7 +30,12 @@ export const RUNTIME_DEFAULTS: Record<Runtime, { command: string; defaultPort: n
 
 interface DevServerState {
   servers: RunningServer[];
-  start: (input: { runtime: Runtime; command?: string; port?: number; cwd: string }) => Promise<void>;
+  start: (input: {
+    runtime: Runtime;
+    command?: string;
+    port?: number;
+    cwd: string;
+  }) => Promise<void>;
   stop: (id: string) => Promise<void>;
 }
 
@@ -65,7 +70,11 @@ export const useDevServerStore = create<DevServerState>((set, get) => ({
       set((s) => ({
         servers: s.servers.map((srv) =>
           srv.id === id
-            ? { ...srv, status: 'exited' as const, logs: [...srv.logs, `\n■ exit code ${data.code ?? '?'}\n`] }
+            ? {
+                ...srv,
+                status: 'exited' as const,
+                logs: [...srv.logs, `\n■ exit code ${data.code ?? '?'}\n`],
+              }
             : srv,
         ),
       }));

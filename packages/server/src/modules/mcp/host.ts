@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { type ChildProcessWithoutNullStreams, spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 
@@ -47,7 +47,10 @@ interface JsonRpcResponse {
 class McpClient {
   private child: ChildProcessWithoutNullStreams;
   private buffer = '';
-  private pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
+  private pending = new Map<
+    number,
+    { resolve: (v: unknown) => void; reject: (e: Error) => void }
+  >();
   private nextId = 1;
   public state: McpServerState;
 
@@ -138,10 +141,7 @@ class McpClient {
 const clients = new Map<string, McpClient>();
 
 export async function loadMcpConfig(): Promise<Record<string, McpServerConfig>> {
-  const candidates = [
-    `${homedir()}/.webcraft/mcp.json`,
-    `${homedir()}/.config/webcraft/mcp.json`,
-  ];
+  const candidates = [`${homedir()}/.webcraft/mcp.json`, `${homedir()}/.config/webcraft/mcp.json`];
   for (const path of candidates) {
     try {
       const raw = await readFile(path, 'utf-8');
@@ -172,7 +172,9 @@ export async function invokeTool(server: string, tool: string, args: unknown): P
   const client = clients.get(server);
   if (!client) throw new Error(`Unknown MCP server: "${server}"`);
   if (client.state.status !== 'ready') {
-    throw new Error(`MCP server "${server}" is ${client.state.status}: ${client.state.error ?? ''}`);
+    throw new Error(
+      `MCP server "${server}" is ${client.state.status}: ${client.state.error ?? ''}`,
+    );
   }
   return client.callTool(tool, args);
 }

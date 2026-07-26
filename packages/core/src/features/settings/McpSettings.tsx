@@ -1,16 +1,8 @@
 import { homeDir } from '@tauri-apps/api/path';
-import {
-  Boxes,
-  CheckCircle2,
-  Loader2,
-  Plus,
-  RefreshCw,
-  Trash2,
-  XCircle,
-} from 'lucide-react';
+import { Boxes, CheckCircle2, Loader2, Plus, RefreshCw, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { sidecarGet, sidecarPost } from '../../lib/ipc/sidecar';
 import { createDir, fileExists, readFile, writeFile } from '../../lib/ipc/fs';
+import { sidecarGet, sidecarPost } from '../../lib/ipc/sidecar';
 import { alert, confirm, prompt } from '../dialog/dialog-store';
 
 /// MCP Servers section of the Settings panel — visual management of the
@@ -86,7 +78,10 @@ export function McpSettings() {
   async function reloadSidecar() {
     setLoading(true);
     try {
-      const { servers: live } = await sidecarPost<{ servers: McpServerStatus[] }>('/mcp/reload', {});
+      const { servers: live } = await sidecarPost<{ servers: McpServerStatus[] }>(
+        '/mcp/reload',
+        {},
+      );
       setServers(live);
     } catch (e) {
       await alert('Reload failed', e instanceof Error ? e.message : String(e));
@@ -166,7 +161,8 @@ export function McpSettings() {
       </header>
 
       <p className="mb-2 text-[11px] text-[var(--color-fg-subtle)]">
-        Configured at <code className="rounded bg-[var(--color-bg)] px-1 font-mono">~/.webcraft/mcp.json</code>.
+        Configured at{' '}
+        <code className="rounded bg-[var(--color-bg)] px-1 font-mono">~/.webcraft/mcp.json</code>.
         Compatible with Claude Desktop's MCP config format.
       </p>
 

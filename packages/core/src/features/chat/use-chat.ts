@@ -9,13 +9,12 @@ import { executeTool } from '../../lib/ai/tool-executor';
 import { TOOLS } from '../../lib/ai/tools';
 import type { ChatMessage, ContentBlock, ToolResultBlock } from '../../lib/ai/types';
 import { useAppStore } from '../../store/app-store';
-import { useSettingsStore } from '../../store/settings-store';
+import { OUTPUT_STYLE_DIRECTIVES, useSettingsStore } from '../../store/settings-store';
 import { useChatStore } from './chat-store';
 import type { PendingImage } from './MessageInput';
 import { resolveMentions } from './mention-resolver';
 import { buildProjectContext } from './project-context';
 import { buildEditorContext } from './use-editor-context';
-import { OUTPUT_STYLE_DIRECTIVES } from '../../store/settings-store';
 
 /// Per-session AbortController. Holding it in module scope (not React state)
 /// lets a stop() click from one component abort the in-flight stream
@@ -128,101 +127,99 @@ export async function sendChat(text: string, images?: PendingImage[]): Promise<v
   const { apiKeys, activeProvider, model, outputStyle } = useSettingsStore.getState();
   const projectRoot = useAppStore.getState().projectRoot;
   {
-      const hasImages = images && images.length > 0;
-      if (!text.trim() && !hasImages) return;
-      const store = useChatStore.getState();
-      if (store.streaming) return;
+    const hasImages = images && images.length > 0;
+    if (!text.trim() && !hasImages) return;
+    const store = useChatStore.getState();
+    if (store.streaming) return;
 
-      const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
-      if (!provider) {
-        store.setError(
-          providerNeedsApiKey(activeProvider)
-            ? `${activeProvider} needs an API key. Open Settings and add one.`
-            : `${activeProvider} is unavailable.`,
-        );
-        return;
-      }
+    const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
+    if (!provider) {
+      store.setError(
+        providerNeedsApiKey(activeProvider)
+          ? `${activeProvider} needs an API key. Open Settings and add one.`
+          : `${activeProvider} is unavailable.`,
+      );
+      return;
+    }
 
-      const content: ContentBlock[] = [];
-      // Image blocks come first so the model anchors on the visual context.
-      if (hasImages) {
-        for (const img of images!) {
-          content.push({
-            type: 'image',
-            source: { type: 'base64', media_type: img.mediaType, data: img.data },
-          });
-        }
-      }
-      // Expand @-mentions: file refs inline file contents, @diagnostics
-      // inlines problems list, @web:query is a model cue for web_search.
-      if (text.trim()) {
-        const { cleanedText, contextBlocks } = await resolveMentions(text);
-        const final =
-          contextBlocks.length > 0
-            ? `${contextBlocks.join('\n\n')}\n\n${cleanedText}`
-            : cleanedText;
-        content.push({ type: 'text', text: final });
-      }
-
-      const userMsg: ChatMessage = {
-        id: mkId('msg'),
-        role: 'user',
-        content,
-        createdAt: Date.now(),
-      };
-      store.appendMessage(userMsg);
-      store.startStream();
-
-      // Inject the live editor state (active file + diagnostics + project
-      // problems) so even non-tool-aware providers (Liara) can answer
-      // questions about what the user is looking at right now.
-      const editorCtx = buildEditorContext();
-      const projectCtx = await buildProjectContext(projectRoot);
-      const styleDirective = OUTPUT_STYLE_DIRECTIVES[outputStyle];
-      // AI memory (CLAUDE.md, editable in Settings): injected for API
-      // providers; Claude Code reads the same files natively — skip to
-      // avoid double context.
-      const memoryCtx = providerExecutesOwnTools(activeProvider)
-        ? null
-        : await buildMemoryContext(projectRoot);
-      const baseSystem = providerExecutesOwnTools(activeProvider)
-        ? SYSTEM_PROMPT_CLAUDE_CODE
-        : providerSupportsTools(activeProvider)
-          ? SYSTEM_PROMPT_TOOLS
-          : SYSTEM_PROMPT_NO_TOOLS;
-      const systemPrompt = [
-        baseSystem,
-        styleDirective || null,
-        memoryCtx,
-        projectRoot ? `Current project root: ${projectRoot}` : 'No project folder open yet.',
-        projectCtx,
-        editorCtx ? `# Live IDE context\n\n${editorCtx}` : null,
-      ]
-        .filter(Boolean)
-        .join('\n\n');
-
-      const abort = new AbortController();
-      activeAbort = abort;
-      try {
-        await runConversation({
-          provider,
-          providerId: activeProvider,
-          model,
-          systemPrompt,
-          signal: abort.signal,
+    const content: ContentBlock[] = [];
+    // Image blocks come first so the model anchors on the visual context.
+    if (hasImages) {
+      for (const img of images!) {
+        content.push({
+          type: 'image',
+          source: { type: 'base64', media_type: img.mediaType, data: img.data },
         });
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        // User-initiated abort: don't show as error, it was intentional.
-        if (abort.signal.aborted || /aborted|abort/i.test(msg)) {
-          // no-op — endStream handles UI
-        } else {
-          store.setError(msg);
-        }
-      } finally {
-        if (activeAbort === abort) activeAbort = null;
-        useChatStore.getState().endStream();
       }
+    }
+    // Expand @-mentions: file refs inline file contents, @diagnostics
+    // inlines problems list, @web:query is a model cue for web_search.
+    if (text.trim()) {
+      const { cleanedText, contextBlocks } = await resolveMentions(text);
+      const final =
+        contextBlocks.length > 0 ? `${contextBlocks.join('\n\n')}\n\n${cleanedText}` : cleanedText;
+      content.push({ type: 'text', text: final });
+    }
+
+    const userMsg: ChatMessage = {
+      id: mkId('msg'),
+      role: 'user',
+      content,
+      createdAt: Date.now(),
+    };
+    store.appendMessage(userMsg);
+    store.startStream();
+
+    // Inject the live editor state (active file + diagnostics + project
+    // problems) so even non-tool-aware providers (Liara) can answer
+    // questions about what the user is looking at right now.
+    const editorCtx = buildEditorContext();
+    const projectCtx = await buildProjectContext(projectRoot);
+    const styleDirective = OUTPUT_STYLE_DIRECTIVES[outputStyle];
+    // AI memory (CLAUDE.md, editable in Settings): injected for API
+    // providers; Claude Code reads the same files natively — skip to
+    // avoid double context.
+    const memoryCtx = providerExecutesOwnTools(activeProvider)
+      ? null
+      : await buildMemoryContext(projectRoot);
+    const baseSystem = providerExecutesOwnTools(activeProvider)
+      ? SYSTEM_PROMPT_CLAUDE_CODE
+      : providerSupportsTools(activeProvider)
+        ? SYSTEM_PROMPT_TOOLS
+        : SYSTEM_PROMPT_NO_TOOLS;
+    const systemPrompt = [
+      baseSystem,
+      styleDirective || null,
+      memoryCtx,
+      projectRoot ? `Current project root: ${projectRoot}` : 'No project folder open yet.',
+      projectCtx,
+      editorCtx ? `# Live IDE context\n\n${editorCtx}` : null,
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+
+    const abort = new AbortController();
+    activeAbort = abort;
+    try {
+      await runConversation({
+        provider,
+        providerId: activeProvider,
+        model,
+        systemPrompt,
+        signal: abort.signal,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      // User-initiated abort: don't show as error, it was intentional.
+      if (abort.signal.aborted || /aborted|abort/i.test(msg)) {
+        // no-op — endStream handles UI
+      } else {
+        store.setError(msg);
+      }
+    } finally {
+      if (activeAbort === abort) activeAbort = null;
+      useChatStore.getState().endStream();
+    }
   }
 }
 
@@ -280,7 +277,11 @@ async function runConversation(opts: {
     let liveTurn = 0;
     let needNewAssistant = false;
 
-    const { assistantBlocks, stopReason, toolResults: providerToolResults } = await provider.stream({
+    const {
+      assistantBlocks,
+      stopReason,
+      toolResults: providerToolResults,
+    } = await provider.stream({
       model,
       system: systemPrompt,
       messages: store.messages.filter((m) => m.role !== 'system' && m.id !== assistantId),
@@ -373,9 +374,7 @@ async function runConversation(opts: {
 
     const toolResults: ToolResultBlock[] = [];
     for (const tu of toolUses) {
-      useChatStore
-        .getState()
-        .setStatus({ phase: 'running-tool', name: tu.name, round: safety });
+      useChatStore.getState().setStatus({ phase: 'running-tool', name: tu.name, round: safety });
       const { content, isError } = await executeTool(tu);
       toolResults.push({
         type: 'tool_result',

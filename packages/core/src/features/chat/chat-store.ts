@@ -61,5 +61,11 @@ export const useChatStore = create<ChatState>((set) => ({
   clearPendingText: () => set({ pendingText: '' }),
   setStatus: (status) => set({ status }),
   reset: () =>
-    set({ messages: [], streaming: false, error: null, pendingText: '', status: { phase: 'idle' } }),
+    set({
+      messages: [],
+      streaming: false,
+      error: null,
+      pendingText: '',
+      status: { phase: 'idle' },
+    }),
 }));

@@ -48,25 +48,45 @@ interface ActivityItem {
 // AI Chat leads the bar: it is the primary entry point of the whole IDE
 // (users repeatedly failed to find it when it sat mid-list).
 const ITEMS: ActivityItem[] = [
-  { id: 'chat-tab', icon: MessageSquare, label: 'AI Chat', shortcut: '⌘L', tint: 'indigo', kind: 'editor-tab' },
-  { id: 'explorer', icon: FileCode, label: 'Explorer', shortcut: '⇧⌘E', tint: 'sky', kind: 'panel' },
+  {
+    id: 'chat-tab',
+    icon: MessageSquare,
+    label: 'AI Chat',
+    shortcut: '⌘L',
+    tint: 'indigo',
+    kind: 'editor-tab',
+  },
+  {
+    id: 'explorer',
+    icon: FileCode,
+    label: 'Explorer',
+    shortcut: '⇧⌘E',
+    tint: 'sky',
+    kind: 'panel',
+  },
   { id: 'search', icon: Search, label: 'Search', shortcut: '⇧⌘F', tint: 'violet', kind: 'panel' },
   { id: 'git', icon: GitBranch, label: 'Source Control', tint: 'orange', kind: 'panel' },
   { id: 'outline', icon: ListTree, label: 'Outline', tint: 'amber', kind: 'panel' },
   { id: 'db-studio-tab', icon: Database, label: 'DB Studio', tint: 'emerald', kind: 'editor-tab' },
-  { id: 'tool-library-tab', icon: Library, label: 'Tool Library', tint: 'cyan', kind: 'editor-tab' },
+  {
+    id: 'tool-library-tab',
+    icon: Library,
+    label: 'Tool Library',
+    tint: 'cyan',
+    kind: 'editor-tab',
+  },
   { id: 'dev-server-tab', icon: Server, label: 'Dev Server', tint: 'rose', kind: 'editor-tab' },
 ];
 
 const TINT_COLOR: Record<string, { fg: string; bg: string; glow: string }> = {
-  sky:      { fg: 'text-sky-300',     bg: 'bg-sky-500/15',     glow: 'shadow-sky-500/30' },
-  violet:   { fg: 'text-violet-300',  bg: 'bg-violet-500/15',  glow: 'shadow-violet-500/30' },
-  orange:   { fg: 'text-orange-300',  bg: 'bg-orange-500/15',  glow: 'shadow-orange-500/30' },
-  amber:    { fg: 'text-amber-300',   bg: 'bg-amber-500/15',   glow: 'shadow-amber-500/30' },
-  indigo:   { fg: 'text-indigo-300',  bg: 'bg-indigo-500/15',  glow: 'shadow-indigo-500/30' },
-  emerald:  { fg: 'text-emerald-300', bg: 'bg-emerald-500/15', glow: 'shadow-emerald-500/30' },
-  rose:     { fg: 'text-rose-300',    bg: 'bg-rose-500/15',    glow: 'shadow-rose-500/30' },
-  cyan:     { fg: 'text-cyan-300',    bg: 'bg-cyan-500/15',    glow: 'shadow-cyan-500/30' },
+  sky: { fg: 'text-sky-300', bg: 'bg-sky-500/15', glow: 'shadow-sky-500/30' },
+  violet: { fg: 'text-violet-300', bg: 'bg-violet-500/15', glow: 'shadow-violet-500/30' },
+  orange: { fg: 'text-orange-300', bg: 'bg-orange-500/15', glow: 'shadow-orange-500/30' },
+  amber: { fg: 'text-amber-300', bg: 'bg-amber-500/15', glow: 'shadow-amber-500/30' },
+  indigo: { fg: 'text-indigo-300', bg: 'bg-indigo-500/15', glow: 'shadow-indigo-500/30' },
+  emerald: { fg: 'text-emerald-300', bg: 'bg-emerald-500/15', glow: 'shadow-emerald-500/30' },
+  rose: { fg: 'text-rose-300', bg: 'bg-rose-500/15', glow: 'shadow-rose-500/30' },
+  cyan: { fg: 'text-cyan-300', bg: 'bg-cyan-500/15', glow: 'shadow-cyan-500/30' },
 };
 
 export function ActivityBar() {
@@ -123,7 +143,14 @@ export function ActivityBar() {
           ))}
         </div>
         <ActivityButton
-          item={{ id: 'settings', icon: Settings, label: 'Settings', shortcut: '⌘,', tint: 'sky', kind: 'panel' }}
+          item={{
+            id: 'settings',
+            icon: Settings,
+            label: 'Settings',
+            shortcut: '⌘,',
+            tint: 'sky',
+            kind: 'panel',
+          }}
           isActive={active === 'settings'}
           onClick={() => setActive('settings')}
         />
@@ -158,7 +185,9 @@ function ActivityButton({
         >
           {isActive ? (
             <>
-              <span className={`absolute left-0 h-7 w-[3px] rounded-r-full ${tint?.fg.replace('text-', 'bg-')}`} />
+              <span
+                className={`absolute left-0 h-7 w-[3px] rounded-r-full ${tint?.fg.replace('text-', 'bg-')}`}
+              />
               <span
                 className={`absolute inset-0 -z-10 rounded-lg blur-md opacity-40 ${tint?.bg}`}
                 aria-hidden="true"

@@ -122,7 +122,9 @@ async function classifyDotnetProject(csprojAbsPath: string): Promise<DotnetProje
     if (
       /Sdk="Microsoft\.NET\.Sdk\.Test"/.test(raw) ||
       /<IsPackable>false<\/IsPackable>[\s\S]*Microsoft\.NET\.Test\.Sdk/.test(raw) ||
-      /PackageReference\s+Include="(xunit|NUnit|MSTest\.TestFramework|Microsoft\.NET\.Test\.Sdk)"/.test(raw)
+      /PackageReference\s+Include="(xunit|NUnit|MSTest\.TestFramework|Microsoft\.NET\.Test\.Sdk)"/.test(
+        raw,
+      )
     ) {
       return 'test';
     }
@@ -178,7 +180,11 @@ async function planDotnetSolution(slnPath: string, cwd: string): Promise<RunChoi
     // Build all per-project choices then prepend in reverse so the order is preserved.
     const perProject: RunChoice[] = [];
     for (const p of classified) {
-      const label = p.rel.split('/').pop()?.replace(/\.(cs|fs|vb)proj$/, '') ?? p.rel;
+      const label =
+        p.rel
+          .split('/')
+          .pop()
+          ?.replace(/\.(cs|fs|vb)proj$/, '') ?? p.rel;
       if (p.kind === 'exe') {
         perProject.push({
           kind: 'script',
@@ -214,8 +220,9 @@ function extractProjectsFromSolution(raw: string): string[] {
   const xmlMatches = [...raw.matchAll(/<Project\s+Path="([^"]+)"/g)].map((m) => m[1]!);
   if (xmlMatches.length > 0) return xmlMatches;
   // .sln (classic) → Project("{guid}") = "Name", "path/Name.csproj", "{guid2}"
-  return [...raw.matchAll(/Project\("[^"]+"\)\s*=\s*"[^"]+",\s*"([^"]+\.(?:cs|fs|vb)proj)"/g)]
-    .map((m) => m[1]!);
+  return [...raw.matchAll(/Project\("[^"]+"\)\s*=\s*"[^"]+",\s*"([^"]+\.(?:cs|fs|vb)proj)"/g)].map(
+    (m) => m[1]!,
+  );
 }
 
 async function planDotnetProject(csprojPath: string, cwd: string): Promise<RunChoice[]> {
@@ -269,7 +276,12 @@ async function planGoModule(cwd: string): Promise<RunChoice[]> {
       cmd: 'go build ./...',
       runFn: runShell('go', ['build', './...'], cwd),
     },
-    { kind: 'script', name: 'test', cmd: 'go test ./...', runFn: runShell('go', ['test', './...'], cwd) },
+    {
+      kind: 'script',
+      name: 'test',
+      cmd: 'go test ./...',
+      runFn: runShell('go', ['test', './...'], cwd),
+    },
   ];
 }
 
@@ -280,19 +292,37 @@ async function planPyProject(filePath: string, cwd: string): Promise<RunChoice[]
     const raw = await readFile(filePath);
     if (/\[tool\.poetry\]/.test(raw)) {
       choices.push(
-        { kind: 'script', name: 'poetry install', cmd: 'poetry install', runFn: runShell('poetry', ['install'], cwd) },
-        { kind: 'script', name: 'poetry run pytest', cmd: 'poetry run pytest', runFn: runShell('poetry', ['run', 'pytest'], cwd) },
+        {
+          kind: 'script',
+          name: 'poetry install',
+          cmd: 'poetry install',
+          runFn: runShell('poetry', ['install'], cwd),
+        },
+        {
+          kind: 'script',
+          name: 'poetry run pytest',
+          cmd: 'poetry run pytest',
+          runFn: runShell('poetry', ['run', 'pytest'], cwd),
+        },
       );
     }
     if (/\[project\]/.test(raw)) {
-      choices.push(
-        { kind: 'script', name: 'pip install -e .', cmd: 'pip install -e .', runFn: runShell('pip', ['install', '-e', '.'], cwd) },
-      );
+      choices.push({
+        kind: 'script',
+        name: 'pip install -e .',
+        cmd: 'pip install -e .',
+        runFn: runShell('pip', ['install', '-e', '.'], cwd),
+      });
     }
   } catch {
     /* fall through */
   }
-  choices.push({ kind: 'script', name: 'pytest', cmd: 'pytest', runFn: runShell('pytest', [], cwd) });
+  choices.push({
+    kind: 'script',
+    name: 'pytest',
+    cmd: 'pytest',
+    runFn: runShell('pytest', [], cwd),
+  });
   return choices;
 }
 
@@ -308,7 +338,10 @@ async function planPythonRequirements(cwd: string): Promise<RunChoice[]> {
   ];
 }
 
-async function parsePackageJsonScripts(filePath: string, _projectRoot: string): Promise<RunChoice[]> {
+async function parsePackageJsonScripts(
+  filePath: string,
+  _projectRoot: string,
+): Promise<RunChoice[]> {
   // CRITICAL: cwd MUST be the directory containing this package.json, not the
   // workspace projectRoot. Otherwise `npm run start` executes against the wrong
   // tree (e.g. user opened ~/ as projectRoot but a real package.json lives in
@@ -392,7 +425,11 @@ async function parsePackageJsonScripts(filePath: string, _projectRoot: string): 
 /// the conflict — auto-kill orphan dev servers from previous failed runs
 /// of the same project (the most common cause once we moved WebCraft to
 /// 11420). Other conflicts get a warning + suggestion in the Output panel.
-async function maybeWarnPortConflict(scriptName: string, cmd: string, pkgDir: string): Promise<void> {
+async function maybeWarnPortConflict(
+  scriptName: string,
+  cmd: string,
+  pkgDir: string,
+): Promise<void> {
   const SUSPECT = /(vite|tauri|next|webpack-dev-server|astro|nuxt)/i;
   if (!SUSPECT.test(scriptName) && !SUSPECT.test(cmd)) return;
   const candidates = [
@@ -442,7 +479,9 @@ async function maybeWarnPortConflict(scriptName: string, cmd: string, pkgDir: st
   }
 
   if (reaped.length > 0) {
-    const lines = reaped.map((r) => `  ✓ killed ${r.command} pid=${r.pid} (was holding port ${r.port})`);
+    const lines = reaped.map(
+      (r) => `  ✓ killed ${r.command} pid=${r.pid} (was holding port ${r.port})`,
+    );
     window.dispatchEvent(
       new CustomEvent('webcraft:run:output', {
         detail: `\n[Run] Reaped orphan dev server${reaped.length === 1 ? '' : 's'} from a previous failed run:\n${lines.join('\n')}\n`,
@@ -460,8 +499,7 @@ async function maybeWarnPortConflict(scriptName: string, cmd: string, pkgDir: st
   }
   if (remaining.length === 0) return;
   const lines = remaining.map(
-    (r) =>
-      `  Port ${r.port} held by ${r.command} (pid ${r.pid}) — kill with: kill -9 ${r.pid}`,
+    (r) => `  Port ${r.port} held by ${r.command} (pid ${r.pid}) — kill with: kill -9 ${r.pid}`,
   );
   const msg =
     `\n[Run] ⚠ Port conflict pre-flight (could not auto-reap):\n${lines.join('\n')}\n` +
@@ -633,7 +671,8 @@ async function detectProjectEntrypoint(
   if (has('Cargo.toml')) return { path: `${root}/Cargo.toml`, label: 'Cargo.toml' };
   if (has('go.mod')) return { path: `${root}/go.mod`, label: 'go.mod' };
   if (has('pyproject.toml')) return { path: `${root}/pyproject.toml`, label: 'pyproject.toml' };
-  if (has('requirements.txt')) return { path: `${root}/requirements.txt`, label: 'requirements.txt' };
+  if (has('requirements.txt'))
+    return { path: `${root}/requirements.txt`, label: 'requirements.txt' };
   // Single .csproj at the root (common for simple .NET apps)
   const csproj = entries.find((n) => /\.(csproj|fsproj|vbproj)$/.test(n));
   if (csproj) return { path: `${root}/${csproj}`, label: csproj };

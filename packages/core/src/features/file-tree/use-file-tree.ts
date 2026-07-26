@@ -20,27 +20,24 @@ export function useFileTree(rootPath: string | null) {
   /// Explorer header has an eye toggle that flips this.
   const [showHidden, setShowHidden] = useState(false);
 
-  const loadRoot = useCallback(
-    async (root: string, showHiddenNow: boolean) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const entries = filterTreeEntries(await listDir(root), showHiddenNow);
-        const nodes: TreeNode[] = entries.map((e) =>
-          e.isDirectory
-            ? { id: e.path, name: e.name, isDirectory: true, children: null }
-            : { id: e.path, name: e.name, isDirectory: false },
-        );
-        setData(nodes);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const loadRoot = useCallback(async (root: string, showHiddenNow: boolean) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const entries = filterTreeEntries(await listDir(root), showHiddenNow);
+      const nodes: TreeNode[] = entries.map((e) =>
+        e.isDirectory
+          ? { id: e.path, name: e.name, isDirectory: true, children: null }
+          : { id: e.path, name: e.name, isDirectory: false },
+      );
+      setData(nodes);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const loadChildren = useCallback(
     async (node: TreeNode) => {
@@ -79,11 +76,7 @@ export function useFileTree(rootPath: string | null) {
   return { data, loading, error, loadChildren, refresh, showHidden, toggleShowHidden };
 }
 
-function patchNode(
-  nodes: TreeNode[],
-  id: string,
-  patcher: (n: TreeNode) => TreeNode,
-): TreeNode[] {
+function patchNode(nodes: TreeNode[], id: string, patcher: (n: TreeNode) => TreeNode): TreeNode[] {
   return nodes.map((n) => {
     if (n.id === id) return patcher(n);
     if (n.children?.length) {

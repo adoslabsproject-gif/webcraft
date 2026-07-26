@@ -1,7 +1,7 @@
 import { Command } from '@tauri-apps/plugin-shell';
-import { alert, confirm, prompt } from '../dialog/dialog-store';
 import { createDir, readFile, removePath, renamePath, writeFile } from '../../lib/ipc/fs';
 import { useAppStore } from '../../store/app-store';
+import { alert, confirm, prompt } from '../dialog/dialog-store';
 
 /// Centralized file-tree action dispatcher — keeps FileTree.tsx clean and
 /// lets the same handler be reused by Command Palette / menu items later.

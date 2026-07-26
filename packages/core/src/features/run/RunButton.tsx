@@ -1,7 +1,7 @@
 import { ChevronDown, Loader2, Play } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useAppStore } from '../../store/app-store';
-import { type RunChoice, planRun } from './runner';
+import { planRun, type RunChoice } from './runner';
 
 /// Run button in the editor toolbar. Auto-detects the right runner for the
 /// active file; if multiple options (e.g. package.json with N scripts),

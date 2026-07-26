@@ -13,7 +13,7 @@ import { useEffect } from 'react';
 import { resetClaudeCodeSession } from '../../lib/ai/claude-code-client';
 import { CHAT_TAB_ID, useAppStore } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
-import { useChatStore, type ChatStatus } from './chat-store';
+import { type ChatStatus, useChatStore } from './chat-store';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { useChat } from './use-chat';
@@ -69,8 +69,12 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg)]">
       {/* Top header */}
-      <div className={`flex items-center justify-between border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)] ${compact ? 'px-3 py-1.5' : 'px-4 py-2'}`}>
-        <div className={`flex items-center gap-2 ${compact ? 'text-xs' : 'text-sm'} font-semibold text-[var(--color-fg)]`}>
+      <div
+        className={`flex items-center justify-between border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)] ${compact ? 'px-3 py-1.5' : 'px-4 py-2'}`}
+      >
+        <div
+          className={`flex items-center gap-2 ${compact ? 'text-xs' : 'text-sm'} font-semibold text-[var(--color-fg)]`}
+        >
           <MessageSquare className={`${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} text-indigo-400`} />
           AI Chat
           {!compact ? (
@@ -115,7 +119,11 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
               chatDockedRight ? 'text-indigo-300' : 'text-[var(--color-fg-subtle)]'
             }`}
           >
-            {chatDockedRight ? <PanelRightClose className="h-3 w-3" /> : <PanelRightOpen className="h-3 w-3" />}
+            {chatDockedRight ? (
+              <PanelRightClose className="h-3 w-3" />
+            ) : (
+              <PanelRightOpen className="h-3 w-3" />
+            )}
           </button>
           {!compact ? (
             <button
@@ -163,12 +171,7 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
       {/* Composer */}
       <div className="flex justify-center border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)]">
         <div className={`w-full ${compact ? '' : 'max-w-[880px]'}`}>
-          <MessageInput
-            disabled={!ready}
-            streaming={streaming}
-            onSubmit={send}
-            onStop={stop}
-          />
+          <MessageInput disabled={!ready} streaming={streaming} onSubmit={send} onStop={stop} />
         </div>
       </div>
     </div>
@@ -177,14 +180,20 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
 
 function EmptyChatHero({ compact = false }: { compact?: boolean }) {
   return (
-    <div className={`flex flex-1 flex-col items-center justify-center gap-3 text-center ${compact ? 'px-3' : 'px-6 gap-4'}`}>
-      <div className={`rounded-full border border-indigo-500/30 bg-indigo-500/10 ${compact ? 'p-2.5' : 'p-4'}`}>
+    <div
+      className={`flex flex-1 flex-col items-center justify-center gap-3 text-center ${compact ? 'px-3' : 'px-6 gap-4'}`}
+    >
+      <div
+        className={`rounded-full border border-indigo-500/30 bg-indigo-500/10 ${compact ? 'p-2.5' : 'p-4'}`}
+      >
         <Bot className={`${compact ? 'h-6 w-6' : 'h-10 w-10'} text-indigo-300`} />
       </div>
       <h2 className={`${compact ? 'text-sm' : 'text-lg'} font-semibold text-[var(--color-fg)]`}>
         Start a conversation
       </h2>
-      <p className={`${compact ? 'text-[11px]' : 'max-w-md text-sm'} text-[var(--color-fg-subtle)]`}>
+      <p
+        className={`${compact ? 'text-[11px]' : 'max-w-md text-sm'} text-[var(--color-fg-subtle)]`}
+      >
         The model can read & write files in the open project.
       </p>
       <div className={`mt-2 grid ${compact ? 'grid-cols-1' : 'grid-cols-2'} gap-2 text-left`}>
@@ -220,8 +229,7 @@ function StreamingBar({ status }: { status: ChatStatus }) {
       return `Running ${status.name}${status.detail ? ` · ${status.detail}` : ''} · round ${status.round}`;
     return 'Generating…';
   })();
-  const tint =
-    status.phase === 'running-tool' ? 'amber' : 'indigo';
+  const tint = status.phase === 'running-tool' ? 'amber' : 'indigo';
   const dotBg = tint === 'amber' ? 'bg-amber-400' : 'bg-indigo-400';
   const barFromTo = tint === 'amber' ? 'via-amber-400' : 'via-indigo-400';
 
@@ -229,8 +237,12 @@ function StreamingBar({ status }: { status: ChatStatus }) {
     <div className="relative border-b border-[var(--color-border-subtle)] bg-[var(--color-bg-subtle)]">
       <div className="flex items-center justify-center gap-2 px-4 py-1.5 text-[11px] text-[var(--color-fg-subtle)]">
         <span className="flex items-center gap-1">
-          <span className={`h-1.5 w-1.5 animate-bounce rounded-full ${dotBg} [animation-delay:-0.3s]`} />
-          <span className={`h-1.5 w-1.5 animate-bounce rounded-full ${dotBg} [animation-delay:-0.15s]`} />
+          <span
+            className={`h-1.5 w-1.5 animate-bounce rounded-full ${dotBg} [animation-delay:-0.3s]`}
+          />
+          <span
+            className={`h-1.5 w-1.5 animate-bounce rounded-full ${dotBg} [animation-delay:-0.15s]`}
+          />
           <span className={`h-1.5 w-1.5 animate-bounce rounded-full ${dotBg}`} />
         </span>
         <span className="font-medium uppercase tracking-wider">{label}</span>

@@ -11,7 +11,7 @@
  */
 
 :root,
-[data-theme='dark'] {
+[data-theme="dark"] {
   /* Surface layers — increasing elevation from bg → bg-elevated → bg-overlay */
   --color-bg: oklch(0.145 0.005 285);
   --color-bg-subtle: oklch(0.165 0.005 285);
@@ -49,12 +49,12 @@
   /* Spacing scale (8px grid + 4px sub-grid) */
   --space-0: 0;
   --space-1: 0.25rem; /* 4px  */
-  --space-2: 0.5rem;  /* 8px  */
+  --space-2: 0.5rem; /* 8px  */
   --space-3: 0.75rem; /* 12px */
-  --space-4: 1rem;    /* 16px */
-  --space-5: 1.5rem;  /* 24px */
-  --space-6: 2rem;    /* 32px */
-  --space-8: 3rem;    /* 48px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.5rem; /* 24px */
+  --space-6: 2rem; /* 32px */
+  --space-8: 3rem; /* 48px */
 
   /* Radius */
   --radius-xs: 2px;
@@ -70,8 +70,8 @@
   --shadow-focus: 0 0 0 2px var(--color-accent);
 
   /* Typography */
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   --text-2xs: 10px;
   --text-xs: 11px;
@@ -104,7 +104,7 @@
   --duration-slow: 280ms;
 }
 
-[data-theme='light'] {
+[data-theme="light"] {
   --color-bg: oklch(0.99 0 0);
   --color-bg-subtle: oklch(0.97 0.002 285);
   --color-bg-elevated: oklch(0.95 0.003 285);

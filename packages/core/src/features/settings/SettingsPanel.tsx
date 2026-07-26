@@ -21,7 +21,11 @@ const PROVIDERS: { id: Provider; label: string; hint: string; needsKey: boolean 
 ];
 
 const CC_PERMISSION_MODES: { id: ClaudeCodePermissionMode; label: string; hint: string }[] = [
-  { id: 'acceptEdits', label: 'Accept edits', hint: 'File edits auto-approved; risky commands blocked' },
+  {
+    id: 'acceptEdits',
+    label: 'Accept edits',
+    hint: 'File edits auto-approved; risky commands blocked',
+  },
   { id: 'plan', label: 'Plan only', hint: 'Read-only: proposes a plan, never touches files' },
   { id: 'bypassPermissions', label: 'Bypass (YOLO)', hint: 'Approves everything — use with care' },
 ];

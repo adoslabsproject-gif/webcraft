@@ -76,9 +76,9 @@ window.addEventListener('unhandledrejection', (e) => {
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import cssWorker from 'monaco-editor/esm/vs/language/css/css.worker?worker';
 import htmlWorker from 'monaco-editor/esm/vs/language/html/html.worker?worker';
+import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
 import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -115,15 +115,13 @@ interface JsonDefaultsApi {
     }): void;
   };
 }
-(monaco.languages as unknown as { json: JsonDefaultsApi }).json.jsonDefaults.setDiagnosticsOptions(
-  {
-    validate: true,
-    allowComments: true,
-    trailingCommas: 'warning',
-    enableSchemaRequest: false,
-    schemas: [],
-  },
-);
+(monaco.languages as unknown as { json: JsonDefaultsApi }).json.jsonDefaults.setDiagnosticsOptions({
+  validate: true,
+  allowComments: true,
+  trailingCommas: 'warning',
+  enableSchemaRequest: false,
+  schemas: [],
+});
 
 loader.config({ monaco });
 

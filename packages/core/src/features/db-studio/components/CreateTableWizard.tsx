@@ -12,8 +12,18 @@ interface Column {
 }
 
 const TYPES = [
-  'SERIAL', 'INT', 'BIGINT', 'TEXT', 'VARCHAR(255)', 'BOOLEAN',
-  'TIMESTAMPTZ', 'DATE', 'JSONB', 'UUID', 'DECIMAL(10,2)', 'BYTEA',
+  'SERIAL',
+  'INT',
+  'BIGINT',
+  'TEXT',
+  'VARCHAR(255)',
+  'BOOLEAN',
+  'TIMESTAMPTZ',
+  'DATE',
+  'JSONB',
+  'UUID',
+  'DECIMAL(10,2)',
+  'BYTEA',
 ];
 
 const newCol = (): Column => ({
@@ -33,7 +43,14 @@ export function CreateTableWizard({ onClose }: { onClose: () => void }) {
   const [tableName, setTableName] = useState('my_table');
   const [columns, setColumns] = useState<Column[]>([
     { name: 'id', type: 'SERIAL', pk: true, nullable: false, unique: false, default: '' },
-    { name: 'created_at', type: 'TIMESTAMPTZ', pk: false, nullable: false, unique: false, default: 'now()' },
+    {
+      name: 'created_at',
+      type: 'TIMESTAMPTZ',
+      pk: false,
+      nullable: false,
+      unique: false,
+      default: 'now()',
+    },
   ]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +96,12 @@ export function CreateTableWizard({ onClose }: { onClose: () => void }) {
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--color-fg)]">
             Create table
           </span>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="rounded p-0.5 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)]"
+          >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -139,12 +161,18 @@ export function CreateTableWizard({ onClose }: { onClose: () => void }) {
                       className="w-full rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-1.5 py-0.5 text-[11px] text-[var(--color-fg)]"
                     >
                       {TYPES.map((t) => (
-                        <option key={t} value={t}>{t}</option>
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
                       ))}
                     </select>
                   </td>
                   <td className="py-1 pr-2 text-center">
-                    <input type="checkbox" checked={c.pk} onChange={(e) => updateCol(i, { pk: e.target.checked })} />
+                    <input
+                      type="checkbox"
+                      checked={c.pk}
+                      onChange={(e) => updateCol(i, { pk: e.target.checked })}
+                    />
                     {c.pk ? <Key className="ml-1 inline h-3 w-3 text-amber-400" /> : null}
                   </td>
                   <td className="py-1 pr-2 text-center">
@@ -200,7 +228,11 @@ export function CreateTableWizard({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex items-center justify-between border-t border-[var(--color-border-subtle)] bg-[var(--color-bg)] p-2">
-          <button type="button" onClick={onClose} className="rounded px-3 py-1 text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-3 py-1 text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+          >
             Cancel
           </button>
           <button

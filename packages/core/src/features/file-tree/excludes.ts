@@ -8,13 +8,7 @@
 /// from .NET, Rust, Node, Python, Go etc. all get a clean tree out of the box.
 
 /// Folder names always hidden — never useful to browse manually.
-const ALWAYS_HIDDEN_DIRS = new Set<string>([
-  '.git',
-  '.svn',
-  '.hg',
-  '.DS_Store',
-  '__MACOSX',
-]);
+const ALWAYS_HIDDEN_DIRS = new Set<string>(['.git', '.svn', '.hg', '.DS_Store', '__MACOSX']);
 
 /// Folder names hidden by default but revealable via the "Show hidden" toggle.
 /// These are build outputs, package caches, IDE state, generated docs etc.

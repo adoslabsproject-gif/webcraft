@@ -88,9 +88,7 @@ export function WorktreePanel() {
       ) : null}
       <ul>
         {worktrees.length === 0 && !busy ? (
-          <li className="px-3 py-2 text-[10px] text-[var(--color-fg-dim)]">
-            No worktrees found.
-          </li>
+          <li className="px-3 py-2 text-[10px] text-[var(--color-fg-dim)]">No worktrees found.</li>
         ) : (
           worktrees.map((w) => {
             const name = w.path.split('/').pop() ?? w.path;

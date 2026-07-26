@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
-import path from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
+import path from 'node:path';
+import Database from 'better-sqlite3';
 import type { DbDriver, DbQueryResult } from './types';
 
 /// SQLite driver — one persistent file per connection under
@@ -31,7 +31,11 @@ export class SqliteDriver implements DbDriver {
     const start = performance.now();
     try {
       const trimmed = sql.trim().toLowerCase();
-      if (trimmed.startsWith('select') || trimmed.startsWith('with') || trimmed.startsWith('pragma')) {
+      if (
+        trimmed.startsWith('select') ||
+        trimmed.startsWith('with') ||
+        trimmed.startsWith('pragma')
+      ) {
         const stmt = db.prepare(sql);
         const rows = stmt.all() as Record<string, unknown>[];
         const columns = rows[0] ? Object.keys(rows[0]) : [];
@@ -61,7 +65,10 @@ export class SqliteDriver implements DbDriver {
   }
 
   async listTables(connectionId: string): Promise<string[]> {
-    const r = await this.query(connectionId, "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+    const r = await this.query(
+      connectionId,
+      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+    );
     return r.rows.map((row) => String(row[0]));
   }
 

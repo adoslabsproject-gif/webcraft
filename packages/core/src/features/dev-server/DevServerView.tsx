@@ -1,13 +1,4 @@
-import {
-  ExternalLink,
-  Eye,
-  EyeOff,
-  Play,
-  Server,
-  Square,
-  Terminal,
-  Trash2,
-} from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, Play, Server, Square, Terminal, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../store/app-store';
 import { RUNTIME_DEFAULTS, type Runtime, useDevServerStore } from './dev-server-store';
@@ -136,9 +127,7 @@ export function DevServerView() {
           <button
             type="button"
             disabled={!projectRoot}
-            onClick={() =>
-              projectRoot && void start({ runtime, command, port, cwd: projectRoot })
-            }
+            onClick={() => projectRoot && void start({ runtime, command, port, cwd: projectRoot })}
             className="mt-[14px] flex items-center gap-1.5 self-end rounded-md bg-amber-600 px-4 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-amber-500 disabled:opacity-40"
           >
             <Play className="h-3.5 w-3.5" />
@@ -183,9 +172,7 @@ export function DevServerView() {
                       }`}
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-mono text-[var(--color-fg)]">
-                        {srv.runtime}
-                      </div>
+                      <div className="truncate font-mono text-[var(--color-fg)]">{srv.runtime}</div>
                       <div className="font-mono text-[10px] text-[var(--color-fg-subtle)]">
                         :{srv.port} · {srv.status}
                       </div>

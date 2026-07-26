@@ -22,11 +22,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EditorActions } from '../features/editor/editor-controller';
-import {
-  type RunChoice,
-  isWebcraftSourceRoot,
-  planActiveRun,
-} from '../features/run/runner';
+import { isWebcraftSourceRoot, planActiveRun, type RunChoice } from '../features/run/runner';
 import { pickFolder } from '../lib/ipc/fs';
 import { useAppStore } from '../store/app-store';
 
@@ -48,8 +44,8 @@ export function Toolbar() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const newUntitledFile = useAppStore((s) => s.newUntitledFile);
   const projectRoot = useAppStore((s) => s.projectRoot);
-  const activeTab = useAppStore((s) =>
-    s.editorTabs.find((t) => t.id === s.activeEditorTabId) ?? null,
+  const activeTab = useAppStore(
+    (s) => s.editorTabs.find((t) => t.id === s.activeEditorTabId) ?? null,
   );
   const editorTabs = useAppStore((s) => s.editorTabs);
 
@@ -147,12 +143,7 @@ export function Toolbar() {
             works regardless of which pane currently has DOM focus. */}
         <ToolGroup>
           <ToolBtn icon={Undo2} label="Undo" shortcut="⌘Z" onClick={EditorActions.undo} />
-          <ToolBtn
-            icon={Redo2}
-            label="Redo"
-            shortcut="⇧⌘Z"
-            onClick={EditorActions.redo}
-          />
+          <ToolBtn icon={Redo2} label="Redo" shortcut="⇧⌘Z" onClick={EditorActions.redo} />
         </ToolGroup>
 
         <ToolSep />
@@ -160,12 +151,7 @@ export function Toolbar() {
         {/* Search group */}
         <ToolGroup>
           <ToolBtn icon={Search} label="Find" shortcut="⌘F" onClick={EditorActions.find} />
-          <ToolBtn
-            icon={Replace}
-            label="Replace"
-            shortcut="⌥⌘F"
-            onClick={EditorActions.replace}
-          />
+          <ToolBtn icon={Replace} label="Replace" shortcut="⌥⌘F" onClick={EditorActions.replace} />
           <ToolBtn
             icon={Search}
             label="Find in Files"
@@ -189,11 +175,7 @@ export function Toolbar() {
               toggleBottomPanel();
             }}
           />
-          <ToolBtn
-            icon={PanelBottom}
-            label="Toggle Bottom Panel"
-            onClick={toggleBottomPanel}
-          />
+          <ToolBtn icon={PanelBottom} label="Toggle Bottom Panel" onClick={toggleBottomPanel} />
           <ToolBtn
             icon={CommandIcon}
             label="Command Palette"
@@ -324,8 +306,8 @@ function RunPickerMenu({
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
             <strong>You're inside the WebCraft source.</strong> Running <code>dev</code> will
-            collide with the dev server keeping this window alive (port 1420). Pick another
-            script, or close WebCraft first.
+            collide with the dev server keeping this window alive (port 1420). Pick another script,
+            or close WebCraft first.
           </span>
         </div>
       ) : null}

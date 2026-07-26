@@ -124,13 +124,15 @@ export function GitPanel() {
         </div>
 
         <pre className="max-h-48 flex-1 overflow-auto border-t border-neutral-800 bg-neutral-950 p-2 font-mono text-[11px]">
-          {diff
-            ? diff.split('\n').map((line, i) => (
-                <div key={i} className={diffLineColor(line)}>
-                  {line || ' '}
-                </div>
-              ))
-            : <span className="text-neutral-600">No diff selected</span>}
+          {diff ? (
+            diff.split('\n').map((line, i) => (
+              <div key={i} className={diffLineColor(line)}>
+                {line || ' '}
+              </div>
+            ))
+          ) : (
+            <span className="text-neutral-600">No diff selected</span>
+          )}
         </pre>
         <WorktreePanel />
       </div>
@@ -191,7 +193,9 @@ function FileGroup({
                 onClick={() => onSelect(f.path)}
                 className="flex flex-1 items-center gap-1.5 truncate text-left"
               >
-                <span className={`w-3 text-center font-mono ${statusColor(f.status)}`}>{f.status}</span>
+                <span className={`w-3 text-center font-mono ${statusColor(f.status)}`}>
+                  {f.status}
+                </span>
                 <span className="truncate text-neutral-300">{f.path}</span>
               </button>
             </li>

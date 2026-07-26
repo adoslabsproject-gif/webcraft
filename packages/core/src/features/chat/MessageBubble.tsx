@@ -18,7 +18,13 @@ function splitDiff(content: string): { plain: string; diffs: string[] } {
 /// Render a single chat message: text blocks, tool_use blocks (collapsible),
 /// tool_result blocks (folded). Streaming text is rendered by MessageList
 /// via the `streamingText` prop append.
-export function MessageBubble({ message, streamingText }: { message: ChatMessage; streamingText?: string }) {
+export function MessageBubble({
+  message,
+  streamingText,
+}: {
+  message: ChatMessage;
+  streamingText?: string;
+}) {
   const isUser = message.role === 'user';
   const onlyToolResults = message.content.every((b) => b.type === 'tool_result');
 
@@ -50,10 +56,7 @@ export function MessageBubble({ message, streamingText }: { message: ChatMessage
                 const parsed = tryParseDiffBlock(body);
                 if (!parsed) {
                   return (
-                    <pre
-                      key={j}
-                      className="mt-1 whitespace-pre-wrap break-words font-mono"
-                    >
+                    <pre key={j} className="mt-1 whitespace-pre-wrap break-words font-mono">
                       {body}
                     </pre>
                   );
@@ -70,7 +73,11 @@ export function MessageBubble({ message, streamingText }: { message: ChatMessage
   return (
     <div className={`my-3 flex gap-2 px-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded bg-neutral-800 text-neutral-400">
-        {isUser ? <User className="h-3.5 w-3.5" /> : <Bot className="h-3.5 w-3.5 text-indigo-400" />}
+        {isUser ? (
+          <User className="h-3.5 w-3.5" />
+        ) : (
+          <Bot className="h-3.5 w-3.5 text-indigo-400" />
+        )}
       </div>
       <div className={`min-w-0 flex-1 ${isUser ? 'text-right' : ''}`}>
         {message.content.map((b, i) => {

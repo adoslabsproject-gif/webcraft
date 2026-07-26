@@ -1,9 +1,9 @@
+import { useSettingsStore } from '../../store/settings-store';
 import { createProvider, providerSupportsTools } from './router';
+import { type SubagentTranscript, useSubagentStore } from './subagent-store';
 import { executeTool } from './tool-executor';
 import { TOOLS } from './tools';
 import type { ContentBlock, ToolDefinition, ToolResultBlock } from './types';
-import { useSettingsStore } from '../../store/settings-store';
-import { useSubagentStore, type SubagentTranscript } from './subagent-store';
 
 /// Subagent runner — spawn an isolated LLM conversation with a custom
 /// system prompt and a curated subset of tools, then return the final
@@ -138,7 +138,9 @@ export async function runSubagent(spec: SubagentSpec): Promise<SubagentResult> {
 
     transcript.messages.push({ role: 'assistant', content: assistantBlocks });
 
-    const textBlocks = assistantBlocks.filter((b): b is { type: 'text'; text: string } => b.type === 'text');
+    const textBlocks = assistantBlocks.filter(
+      (b): b is { type: 'text'; text: string } => b.type === 'text',
+    );
     if (textBlocks.length > 0) {
       finalText = textBlocks.map((t) => t.text).join('\n');
     }

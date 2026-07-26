@@ -11,8 +11,8 @@
  * 5. Base layer — body, scrollbar, focus ring.
  */
 
-@import './tokens.css';
-@import 'tailwindcss';
+@import "./tokens.css";
+@import "tailwindcss";
 
 @source "../../../../packages/core/src/**/*.{ts,tsx}";
 @source "../../../../packages/design-system/src/**/*.{ts,tsx}";
@@ -74,15 +74,19 @@ body,
 /* Streaming progress bar slide animation — Cursor-style live indicator
    on the chat panel header while the model is generating. */
 @keyframes slide {
-  0%   { transform: translateX(-100%); }
-  100% { transform: translateX(400%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
 }
 
 /* Default UI chrome is non-selectable for a native feel, but anything
    inside `.select-text` (Tailwind utility) opts back in — used for
    problem messages, file paths, code snippets the user needs to copy. */
 button,
-[role='button'] {
+[role="button"] {
   user-select: none;
   -webkit-user-select: none;
 }

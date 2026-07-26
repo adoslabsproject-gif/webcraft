@@ -123,7 +123,10 @@ export function DbStudioView() {
             <Tabs.Content value="structure" className="min-h-0 flex-1 overflow-hidden outline-none">
               <TableStructure />
             </Tabs.Content>
-            <Tabs.Content value="sql" className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none">
+            <Tabs.Content
+              value="sql"
+              className="flex min-h-0 flex-1 flex-col overflow-hidden outline-none"
+            >
               <div className="min-h-[160px] flex-1">
                 <SqlEditor />
               </div>

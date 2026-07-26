@@ -8,7 +8,9 @@ export function TableStructure() {
   const table = useDbStore((s) => s.activeTable);
 
   if (!table) {
-    return <div className="p-3 text-xs text-neutral-500">Select a table to inspect its structure.</div>;
+    return (
+      <div className="p-3 text-xs text-neutral-500">Select a table to inspect its structure.</div>
+    );
   }
   if (columns.length === 0) {
     return <div className="p-3 text-xs text-neutral-500">Loading columns…</div>;
