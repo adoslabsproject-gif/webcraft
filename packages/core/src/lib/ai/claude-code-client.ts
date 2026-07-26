@@ -37,6 +37,17 @@ export function resetClaudeCodeSession(projectRoot: string | null): void {
   sessions.delete(projectRoot ?? '');
 }
 
+/// Chat-history integration: the persisted chat session remembers which CC
+/// session it belongs to, so switching conversations switches MY context too.
+export function getClaudeCodeSession(projectRoot: string | null): string | null {
+  return sessions.get(projectRoot ?? '') ?? null;
+}
+
+export function setClaudeCodeSession(projectRoot: string | null, id: string | null): void {
+  if (id) sessions.set(projectRoot ?? '', id);
+  else sessions.delete(projectRoot ?? '');
+}
+
 export async function claudeCodeAvailable(): Promise<{
   available: boolean;
   version?: string;

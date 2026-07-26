@@ -1,6 +1,7 @@
 import {
   AlertCircle,
   Bot,
+  History,
   Maximize2,
   MessageSquare,
   MessageSquarePlus,
@@ -8,12 +9,21 @@ import {
   PanelRightOpen,
   Settings as SettingsIcon,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
-import { useEffect } from 'react';
-import { resetClaudeCodeSession } from '../../lib/ai/claude-code-client';
+import { useEffect, useRef, useState } from 'react';
 import { CHAT_TAB_ID, useAppStore } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
-import { type ChatStatus, useChatStore } from './chat-store';
+import {
+  activeChatSessionId,
+  type ChatSessionMeta,
+  deleteChatSession,
+  listChatSessions,
+  newChatSession,
+  onChatHistoryChange,
+  switchChatSession,
+} from './chat-persistence';
+import { type ChatStatus } from './chat-store';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
 import { useChat } from './use-chat';
@@ -87,16 +97,12 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <ChatHistoryMenu disabled={streaming} />
           <button
             type="button"
             disabled={streaming}
-            onClick={() => {
-              useChatStore.getState().reset();
-              // Fresh Claude Code session too — otherwise the CLI would
-              // resume the old context under an empty-looking transcript.
-              resetClaudeCodeSession(useAppStore.getState().projectRoot);
-            }}
-            title="New chat (clears the transcript and starts a fresh session)"
+            onClick={() => newChatSession()}
+            title="New chat (the current conversation stays in History)"
             className="rounded p-1 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)] disabled:opacity-40"
           >
             <MessageSquarePlus className="h-3 w-3" />
@@ -252,6 +258,93 @@ function StreamingBar({ status }: { status: ChatStatus }) {
           className={`h-full w-1/3 animate-[slide_1.4s_ease-in-out_infinite] bg-gradient-to-r from-transparent ${barFromTo} to-transparent`}
         />
       </div>
+    </div>
+  );
+}
+
+/// Conversation history dropdown — lists this project's persisted sessions
+/// (newest first), switch on click, per-row delete. Re-renders on any
+/// history mutation via the persistence layer's change listener.
+function ChatHistoryMenu({ disabled }: { disabled: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [sessions, setSessions] = useState<ChatSessionMeta[]>(() => listChatSessions());
+  const [activeId, setActiveId] = useState<string | null>(() => activeChatSessionId());
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return onChatHistoryChange(() => {
+      setSessions(listChatSessions());
+      setActiveId(activeChatSessionId());
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    window.addEventListener('mousedown', onDown, true);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('mousedown', onDown, true);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+        title="Conversation history"
+        className="rounded p-1 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-fg)] disabled:opacity-40"
+      >
+        <History className="h-3 w-3" />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-50 mt-1 max-h-80 w-72 overflow-y-auto rounded-md border border-[var(--color-border)] bg-[var(--color-bg)] py-1 shadow-xl">
+          {sessions.length === 0 ? (
+            <div className="px-3 py-2 text-[11px] text-[var(--color-fg-subtle)]">
+              No conversations yet.
+            </div>
+          ) : (
+            sessions.map((s) => (
+              <div
+                key={s.id}
+                className={`group flex items-center gap-2 px-3 py-1.5 hover:bg-[var(--color-bg-hover)] ${
+                  s.id === activeId ? 'bg-[var(--color-bg-subtle)]' : ''
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    switchChatSession(s.id);
+                    setOpen(false);
+                  }}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <div className="truncate text-[11px] text-[var(--color-fg)]">{s.title}</div>
+                  <div className="text-[10px] text-[var(--color-fg-subtle)]">
+                    {new Date(s.updatedAt).toLocaleString()} · {s.messageCount} messages
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteChatSession(s.id)}
+                  title="Delete conversation"
+                  className="rounded p-0.5 text-[var(--color-fg-subtle)] opacity-0 hover:text-[var(--color-danger)] group-hover:opacity-100"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

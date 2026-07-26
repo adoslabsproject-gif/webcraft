@@ -181,7 +181,10 @@ export function Toolbar() {
             label="Command Palette"
             shortcut="⇧⌘P"
             onClick={() =>
-              window.dispatchEvent(
+              // The palette's keydown listener sits on `document` — a
+              // window-dispatched event never reaches it (dispatchEvent
+              // does not propagate window → document).
+              document.dispatchEvent(
                 new KeyboardEvent('keydown', { key: 'p', metaKey: true, shiftKey: true }),
               )
             }
