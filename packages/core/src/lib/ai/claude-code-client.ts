@@ -21,6 +21,8 @@ interface StreamCallbacks {
   onStop: (reason: string) => void;
   onError: (err: Error) => void;
   onUsage?: (usage: { input: number; output: number }) => void;
+  onAssistantBlocks?: (blocks: ContentBlock[]) => void;
+  onToolResults?: (results: ToolResultBlock[]) => void;
 }
 
 /// CC tool names whose success means the filesystem changed — used to
@@ -176,10 +178,11 @@ export class ClaudeCodeProvider {
 
       if (type === 'assistant') {
         const content = (event as { message?: { content?: unknown[] } }).message?.content ?? [];
+        const turnBlocks: ContentBlock[] = [];
         for (const raw of content) {
           const block = raw as { type?: string; text?: string; id?: string; name?: string; input?: Record<string, unknown> };
           if (block.type === 'text' && block.text) {
-            assistantBlocks.push({ type: 'text', text: block.text });
+            turnBlocks.push({ type: 'text', text: block.text });
           } else if (block.type === 'tool_use' && block.id && block.name) {
             const tu = {
               type: 'tool_use' as const,
@@ -187,19 +190,24 @@ export class ClaudeCodeProvider {
               name: block.name,
               input: block.input ?? {},
             };
-            assistantBlocks.push(tu);
+            turnBlocks.push(tu);
             callbacks.onToolUse?.(tu);
           }
+        }
+        if (turnBlocks.length > 0) {
+          assistantBlocks.push(...turnBlocks);
+          callbacks.onAssistantBlocks?.(turnBlocks);
         }
         return;
       }
 
       if (type === 'user') {
         const content = (event as { message?: { content?: unknown[] } }).message?.content ?? [];
+        const turnResults: ToolResultBlock[] = [];
         for (const raw of content) {
           const block = raw as { type?: string; tool_use_id?: string; content?: unknown; is_error?: boolean };
           if (block.type === 'tool_result' && block.tool_use_id) {
-            toolResults.push({
+            turnResults.push({
               type: 'tool_result',
               tool_use_id: block.tool_use_id,
               content: resultText(block.content),
@@ -218,6 +226,10 @@ export class ClaudeCodeProvider {
               useAppStore.getState().notifyFsChange();
             }
           }
+        }
+        if (turnResults.length > 0) {
+          toolResults.push(...turnResults);
+          callbacks.onToolResults?.(turnResults);
         }
         return;
       }

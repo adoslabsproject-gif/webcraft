@@ -86,6 +86,15 @@ function mkId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/// Human-readable one-liner of what a tool call is doing, for the status
+/// pill ("Running Bash · git log --oneline").
+function toolDetail(input: Record<string, unknown>): string | undefined {
+  const candidate =
+    input.command ?? input.file_path ?? input.path ?? input.pattern ?? input.query ?? input.url;
+  if (typeof candidate !== 'string' || !candidate) return undefined;
+  return candidate.length > 60 ? `${candidate.slice(0, 57)}…` : candidate;
+}
+
 /// Standing instructions from the editable CLAUDE.md files (Settings →
 /// AI memory): global (~/.claude/CLAUDE.md) + per-project.
 async function buildMemoryContext(projectRoot: string | null): Promise<string | null> {
@@ -261,6 +270,16 @@ async function runConversation(opts: {
     store.appendMessage(assistant);
     store.clearPendingText();
 
+    // Live interleaved transcript for own-loop providers (Claude Code):
+    // every completed agent turn (text + tool cards) and every batch of
+    // tool results is appended to the chat AS IT HAPPENS — a long agentic
+    // run must never leave the user staring at a spinner for minutes.
+    let liveId = assistantId;
+    let liveContent: ContentBlock[] = [];
+    let liveDirty = false;
+    let liveTurn = 0;
+    let needNewAssistant = false;
+
     const { assistantBlocks, stopReason, toolResults: providerToolResults } = await provider.stream({
       model,
       system: systemPrompt,
@@ -269,15 +288,62 @@ async function runConversation(opts: {
       signal,
       callbacks: {
         onText: (d) => useChatStore.getState().appendPendingText(d),
-        onToolUse: (tu) =>
-          useChatStore
-            .getState()
-            .setStatus({ phase: 'running-tool', name: tu.name, round: safety }),
+        onToolUse: (tu) => {
+          const detail = toolDetail(tu.input);
+          useChatStore.getState().setStatus({
+            phase: 'running-tool',
+            name: tu.name,
+            round: executesOwnTools ? ++liveTurn : safety,
+            ...(detail ? { detail } : {}),
+          });
+        },
         onStop: () => {},
         onError: () => {},
         onUsage: (u) => useSettingsStore.getState().addTokens(u.input, u.output),
+        ...(executesOwnTools
+          ? {
+              onAssistantBlocks: (blocks: ContentBlock[]) => {
+                const s = useChatStore.getState();
+                if (needNewAssistant) {
+                  s.setMessageStreaming(liveId, false);
+                  liveId = mkId('msg');
+                  liveContent = [];
+                  s.appendMessage({
+                    id: liveId,
+                    role: 'assistant',
+                    content: [],
+                    createdAt: Date.now(),
+                    streaming: true,
+                  });
+                  needNewAssistant = false;
+                }
+                s.clearPendingText();
+                liveContent = [...liveContent, ...blocks];
+                s.setMessageContent(liveId, liveContent);
+                liveDirty = true;
+              },
+              onToolResults: (results: ToolResultBlock[]) => {
+                useChatStore.getState().appendMessage({
+                  id: mkId('msg'),
+                  role: 'user',
+                  content: results,
+                  createdAt: Date.now(),
+                });
+                needNewAssistant = true;
+                liveDirty = true;
+              },
+            }
+          : {}),
       },
     });
+
+    // Live transcript already rendered everything — just close the last
+    // message and stop (results were appended in real time).
+    if (executesOwnTools && liveDirty) {
+      useChatStore.getState().setMessageStreaming(liveId, false);
+      useChatStore.getState().clearPendingText();
+      return;
+    }
 
     useChatStore.getState().setMessageContent(assistantId, assistantBlocks);
     useChatStore.getState().setMessageStreaming(assistantId, false);

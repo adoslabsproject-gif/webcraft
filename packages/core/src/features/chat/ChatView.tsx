@@ -201,7 +201,7 @@ function StreamingBar({ status }: { status: ChatStatus }) {
     if (status.phase === 'thinking') return 'Thinking…';
     if (status.phase === 'streaming-text') return 'Writing reply…';
     if (status.phase === 'running-tool')
-      return `Running ${status.name} · round ${status.round}`;
+      return `Running ${status.name}${status.detail ? ` · ${status.detail}` : ''} · round ${status.round}`;
     return 'Generating…';
   })();
   const tint =

@@ -20,6 +20,12 @@ export interface ProviderStreamCallbacks {
   onError: (err: Error) => void;
   /// Reports token usage when the provider knows it (end of stream).
   onUsage?: (usage: { input: number; output: number }) => void;
+  /// Own-loop providers (Claude Code): a completed agent turn (text +
+  /// tool_use blocks) — lets the UI append transcript content LIVE while
+  /// the run continues instead of waiting for the end.
+  onAssistantBlocks?: (blocks: ContentBlock[]) => void;
+  /// Own-loop providers: tool results of the latest turn, live.
+  onToolResults?: (results: ToolResultBlock[]) => void;
 }
 
 export interface LlmProvider {

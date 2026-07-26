@@ -8,7 +8,7 @@ export type ChatStatus =
   | { phase: 'idle' }
   | { phase: 'thinking' }
   | { phase: 'streaming-text' }
-  | { phase: 'running-tool'; name: string; round: number };
+  | { phase: 'running-tool'; name: string; round: number; detail?: string };
 
 interface ChatState {
   messages: ChatMessage[];
