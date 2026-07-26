@@ -10,10 +10,19 @@ export interface DbQueryResult {
   error?: string;
 }
 
+/// Where a connection points: an existing file on disk (sqlite/duckdb), a
+/// server URL (redis/mongo/libsql/turso), or nothing (driver-managed local
+/// store under ~/.webcraft).
+export interface ConnectionDescriptor {
+  kind: string;
+  file?: string;
+  url?: string;
+}
+
 export interface DbDriver {
   kind: string;
-  open(connectionId: string): Promise<void>;
-  query(connectionId: string, sql: string): Promise<DbQueryResult>;
-  listTables(connectionId: string): Promise<string[]>;
+  open(connectionId: string, desc?: ConnectionDescriptor): Promise<void>;
+  query(connectionId: string, sql: string, desc?: ConnectionDescriptor): Promise<DbQueryResult>;
+  listTables(connectionId: string, desc?: ConnectionDescriptor): Promise<string[]>;
   close(connectionId: string): Promise<void>;
 }

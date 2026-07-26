@@ -1,32 +1,52 @@
-import RedisMock from 'ioredis-mock';
-import type { DbDriver, DbQueryResult } from './types';
+import Redis from 'ioredis';
+import type { ConnectionDescriptor, DbDriver, DbQueryResult } from './types';
 
-/// Redis driver — uses ioredis-mock for in-process key/value playground.
-/// Real Redis would connect via ioredis to redis://localhost:6379.
+/// Redis driver — REAL ioredis client. Connects to the descriptor URL
+/// (redis://host:port[/db]) or the local default. Fails fast (1.5s connect
+/// timeout, no retry storm) so a down server is an error message, not a
+/// hang.
 ///
-/// SQL surface: we parse a tiny grammar (`SET k v`, `GET k`, `KEYS pat`,
-/// `DEL k`, `HSET k f v`, `HGETALL k`, ...) so the SQL Editor can drive it
-/// without users learning the redis-cli quirks.
+/// Query surface: raw redis commands (`SET k v`, `GET k`, `KEYS pat`,
+/// `HGETALL k`, …) — dispatched via ioredis `call`, so the entire command
+/// set works.
 export class RedisDriver implements DbDriver {
   kind = 'redis' as const;
-  private clients = new Map<string, RedisMock>();
+  private clients = new Map<string, Redis>();
 
-  async open(connectionId: string): Promise<void> {
+  async open(connectionId: string, desc?: ConnectionDescriptor): Promise<void> {
     if (this.clients.has(connectionId)) return;
-    this.clients.set(connectionId, new RedisMock());
+    const url = desc?.url ?? 'redis://127.0.0.1:6379';
+    const client = new Redis(url, {
+      lazyConnect: true,
+      connectTimeout: 1500,
+      maxRetriesPerRequest: 1,
+      retryStrategy: () => null, // no background reconnect loops
+    });
+    await client.connect();
+    this.clients.set(connectionId, client);
   }
 
-  async query(connectionId: string, sql: string): Promise<DbQueryResult> {
-    await this.open(connectionId);
+  async query(
+    connectionId: string,
+    sql: string,
+    desc?: ConnectionDescriptor,
+  ): Promise<DbQueryResult> {
+    const start = performance.now();
+    try {
+      await this.open(connectionId, desc);
+    } catch (e) {
+      return err(
+        `cannot reach redis (${desc?.url ?? 'redis://127.0.0.1:6379'}): ${e instanceof Error ? e.message : String(e)}`,
+        performance.now() - start,
+      );
+    }
     const client = this.clients.get(connectionId);
     if (!client) return err('no client');
-    const start = performance.now();
     try {
       const tokens = sql.trim().split(/\s+/);
       const cmd = (tokens[0] ?? '').toLowerCase();
       const args = tokens.slice(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result = await (client as any).call(cmd, ...args);
+      const result = await client.call(cmd, ...args);
       const rows = Array.isArray(result) ? result.map((r) => [r]) : [[result]];
       return {
         columns: ['value'],
@@ -39,15 +59,15 @@ export class RedisDriver implements DbDriver {
     }
   }
 
-  async listTables(connectionId: string): Promise<string[]> {
-    const r = await this.query(connectionId, 'KEYS *');
+  async listTables(connectionId: string, desc?: ConnectionDescriptor): Promise<string[]> {
+    const r = await this.query(connectionId, 'KEYS *', desc);
     return r.rows.map((row) => String(row[0]));
   }
 
   async close(connectionId: string): Promise<void> {
     const c = this.clients.get(connectionId);
     if (c) {
-      c.disconnect?.();
+      c.disconnect();
       this.clients.delete(connectionId);
     }
   }

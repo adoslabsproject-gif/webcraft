@@ -99,9 +99,15 @@ export async function autoConnectProjectDatabases(root: string): Promise<number>
     useDbStore.getState().addConnection({
       name: `${d.source} (${d.kind})`,
       kind: d.kind,
-      available: d.kind === 'sqlite', // SQLite via sidecar later — only flagged as available where renderer-side driver exists
+      // The descriptor travels to the sidecar driver, so discovered
+      // EXISTING databases (a .sqlite file, a DATABASE_URL) open for real.
+      ...(d.file ? { file: d.file } : {}),
+      ...(d.url ? { url: d.url } : {}),
+      available: ['sqlite', 'duckdb', 'libsql', 'redis', 'mongo'].includes(d.kind),
     });
     added++;
   }
+  // Re-probe against the sidecar so availability reflects this build.
+  void useDbStore.getState().refreshDriverAvailability();
   return added;
 }

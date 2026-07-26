@@ -2,25 +2,33 @@ import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { type Client, createClient } from '@libsql/client';
-import type { DbDriver, DbQueryResult } from './types';
+import type { ConnectionDescriptor, DbDriver, DbQueryResult } from './types';
 
 const DB_DIR = path.join(homedir(), '.webcraft', 'databases', 'libsql');
 
 /// LibSQL driver — SQLite-compatible distributed DB (Turso fork).
-/// Local file mode by default; can connect to remote Turso with auth token.
+/// Descriptor url (libsql://… remote Turso) or file take precedence over
+/// the managed local file.
 export class LibsqlDriver implements DbDriver {
   kind = 'libsql' as const;
   private clients = new Map<string, Client>();
 
-  async open(connectionId: string): Promise<void> {
+  async open(connectionId: string, desc?: ConnectionDescriptor): Promise<void> {
     if (this.clients.has(connectionId)) return;
-    mkdirSync(DB_DIR, { recursive: true });
-    const url = `file:${path.join(DB_DIR, `${connectionId}.db`)}`;
+    let url = desc?.url ?? (desc?.file ? `file:${desc.file}` : null);
+    if (!url) {
+      mkdirSync(DB_DIR, { recursive: true });
+      url = `file:${path.join(DB_DIR, `${connectionId}.db`)}`;
+    }
     this.clients.set(connectionId, createClient({ url }));
   }
 
-  async query(connectionId: string, sql: string): Promise<DbQueryResult> {
-    await this.open(connectionId);
+  async query(
+    connectionId: string,
+    sql: string,
+    desc?: ConnectionDescriptor,
+  ): Promise<DbQueryResult> {
+    await this.open(connectionId, desc);
     const client = this.clients.get(connectionId);
     if (!client) return err('no client');
     const start = performance.now();
@@ -37,10 +45,11 @@ export class LibsqlDriver implements DbDriver {
     }
   }
 
-  async listTables(connectionId: string): Promise<string[]> {
+  async listTables(connectionId: string, desc?: ConnectionDescriptor): Promise<string[]> {
     const r = await this.query(
       connectionId,
       "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+      desc,
     );
     return r.rows.map((row) => String(row[0]));
   }

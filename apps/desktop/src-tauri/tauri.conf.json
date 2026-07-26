@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm vite:dev",
     "devUrl": "http://localhost:11420",
-    "beforeBuildCommand": "pnpm --dir ../../packages/server build && pnpm vite:build",
+    "beforeBuildCommand": "pnpm --dir ../../packages/server build && node scripts/deploy-sidecar.mjs && pnpm vite:build",
     "beforeBundleCommand": "node scripts/copy-voice-libs.mjs",
     "frontendDist": "../dist"
   },
@@ -33,7 +33,7 @@
     "active": true,
     "targets": ["app", "dmg", "msi", "nsis", "appimage", "deb", "rpm"],
     "resources": {
-      "../../../packages/server/dist/sidecar.mjs": "sidecar.mjs"
+      "sidecar-runtime": "sidecar-runtime"
     },
     "icon": [
       "icons/32x32.png",

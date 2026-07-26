@@ -1,9 +1,9 @@
 import { MongoClient } from 'mongodb';
-import { MongoMemoryServer } from 'mongodb-memory-server';
-import type { DbDriver, DbQueryResult } from './types';
+import type { ConnectionDescriptor, DbDriver, DbQueryResult } from './types';
 
-/// MongoDB driver — uses mongodb-memory-server to spawn a local mongod
-/// process and connects via the official MongoClient.
+/// MongoDB driver — REAL MongoClient against the descriptor URL
+/// (mongodb://host:port) or local default. 1.5s server selection timeout
+/// so an unreachable server errors fast instead of hanging.
 ///
 /// Query language: pass JSON like
 ///   { collection: "users", op: "find", filter: { age: { $gte: 18 } } }
@@ -11,21 +11,35 @@ import type { DbDriver, DbQueryResult } from './types';
 /// shell parity comes later.
 export class MongoDriver implements DbDriver {
   kind = 'mongo' as const;
-  private servers = new Map<string, { server: MongoMemoryServer; client: MongoClient }>();
+  private servers = new Map<string, { client: MongoClient }>();
 
-  async open(connectionId: string): Promise<void> {
+  async open(connectionId: string, desc?: ConnectionDescriptor): Promise<void> {
     if (this.servers.has(connectionId)) return;
-    const server = await MongoMemoryServer.create();
-    const client = new MongoClient(server.getUri());
+    const url = desc?.url ?? 'mongodb://127.0.0.1:27017';
+    const client = new MongoClient(url, {
+      serverSelectionTimeoutMS: 1500,
+      connectTimeoutMS: 1500,
+    });
     await client.connect();
-    this.servers.set(connectionId, { server, client });
+    this.servers.set(connectionId, { client });
   }
 
-  async query(connectionId: string, sql: string): Promise<DbQueryResult> {
-    await this.open(connectionId);
+  async query(
+    connectionId: string,
+    sql: string,
+    desc?: ConnectionDescriptor,
+  ): Promise<DbQueryResult> {
+    const start = performance.now();
+    try {
+      await this.open(connectionId, desc);
+    } catch (e) {
+      return err(
+        `cannot reach mongodb (${desc?.url ?? 'mongodb://127.0.0.1:27017'}): ${e instanceof Error ? e.message : String(e)}`,
+        performance.now() - start,
+      );
+    }
     const entry = this.servers.get(connectionId);
     if (!entry) return err('no client');
-    const start = performance.now();
     try {
       const spec = JSON.parse(sql) as {
         db?: string;
@@ -77,7 +91,12 @@ export class MongoDriver implements DbDriver {
     }
   }
 
-  async listTables(connectionId: string): Promise<string[]> {
+  async listTables(connectionId: string, desc?: ConnectionDescriptor): Promise<string[]> {
+    try {
+      await this.open(connectionId, desc);
+    } catch {
+      return [];
+    }
     const entry = this.servers.get(connectionId);
     if (!entry) return [];
     const db = entry.client.db('test');
@@ -89,7 +108,6 @@ export class MongoDriver implements DbDriver {
     const entry = this.servers.get(connectionId);
     if (entry) {
       await entry.client.close();
-      await entry.server.stop();
       this.servers.delete(connectionId);
     }
   }

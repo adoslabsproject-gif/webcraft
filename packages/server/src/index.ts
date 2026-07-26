@@ -64,6 +64,27 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { ok: true, version: '0.1.0' });
     }
 
+    if (req.method === 'GET' && req.url === '/db/drivers') {
+      const dbManager = await getDbManager();
+      return send(res, 200, { drivers: await dbManager.driversAvailable() });
+    }
+
+    if (req.method === 'POST' && req.url === '/db/register') {
+      const body = await readJson<{
+        connectionId: string;
+        kind: string;
+        file?: string;
+        url?: string;
+      }>(req);
+      const dbManager = await getDbManager();
+      dbManager.register(body.connectionId, {
+        kind: body.kind,
+        ...(body.file ? { file: body.file } : {}),
+        ...(body.url ? { url: body.url } : {}),
+      });
+      return send(res, 200, { ok: true });
+    }
+
     if (req.method === 'POST' && req.url === '/db/query') {
       const body = await readJson<{ connectionId: string; sql: string }>(req);
       const dbManager = await getDbManager();

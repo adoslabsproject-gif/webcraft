@@ -2,9 +2,10 @@ import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import type { DbDriver, DbQueryResult } from './types';
+import type { ConnectionDescriptor, DbDriver, DbQueryResult } from './types';
 
-/// SQLite driver — one persistent file per connection under
+/// SQLite driver — opens the user's EXISTING .db/.sqlite file when the
+/// connection descriptor carries one, otherwise a managed file under
 /// ~/.webcraft/databases/sqlite/<connectionId>.db
 
 const DB_DIR = path.join(homedir(), '.webcraft', 'databases', 'sqlite');
@@ -13,17 +14,24 @@ export class SqliteDriver implements DbDriver {
   kind = 'sqlite' as const;
   private handles = new Map<string, Database.Database>();
 
-  async open(connectionId: string): Promise<void> {
+  async open(connectionId: string, desc?: ConnectionDescriptor): Promise<void> {
     if (this.handles.has(connectionId)) return;
-    mkdirSync(DB_DIR, { recursive: true });
-    const dbPath = path.join(DB_DIR, `${connectionId}.db`);
+    let dbPath = desc?.file;
+    if (!dbPath) {
+      mkdirSync(DB_DIR, { recursive: true });
+      dbPath = path.join(DB_DIR, `${connectionId}.db`);
+    }
     const db = new Database(dbPath);
     db.pragma('journal_mode = WAL');
     this.handles.set(connectionId, db);
   }
 
-  async query(connectionId: string, sql: string): Promise<DbQueryResult> {
-    await this.open(connectionId);
+  async query(
+    connectionId: string,
+    sql: string,
+    desc?: ConnectionDescriptor,
+  ): Promise<DbQueryResult> {
+    await this.open(connectionId, desc);
     const db = this.handles.get(connectionId);
     if (!db) {
       return { columns: [], rows: [], rowsAffected: 0, durationMs: 0, error: 'no connection' };
@@ -64,10 +72,11 @@ export class SqliteDriver implements DbDriver {
     }
   }
 
-  async listTables(connectionId: string): Promise<string[]> {
+  async listTables(connectionId: string, desc?: ConnectionDescriptor): Promise<string[]> {
     const r = await this.query(
       connectionId,
       "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+      desc,
     );
     return r.rows.map((row) => String(row[0]));
   }

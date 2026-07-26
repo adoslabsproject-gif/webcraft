@@ -2,25 +2,33 @@ import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { DuckDBInstance } from '@duckdb/node-api';
-import type { DbDriver, DbQueryResult } from './types';
+import type { ConnectionDescriptor, DbDriver, DbQueryResult } from './types';
 
 const DB_DIR = path.join(homedir(), '.webcraft', 'databases', 'duckdb');
 
-/// DuckDB driver — embedded analytics DB. One file per connection.
+/// DuckDB driver — embedded analytics DB. Opens the user's existing
+/// .duckdb file via descriptor, or a managed per-connection file.
 export class DuckdbDriver implements DbDriver {
   kind = 'duckdb' as const;
   private instances = new Map<string, Awaited<ReturnType<typeof DuckDBInstance.create>>>();
 
-  async open(connectionId: string): Promise<void> {
+  async open(connectionId: string, desc?: ConnectionDescriptor): Promise<void> {
     if (this.instances.has(connectionId)) return;
-    mkdirSync(DB_DIR, { recursive: true });
-    const dbPath = path.join(DB_DIR, `${connectionId}.duckdb`);
+    let dbPath = desc?.file;
+    if (!dbPath) {
+      mkdirSync(DB_DIR, { recursive: true });
+      dbPath = path.join(DB_DIR, `${connectionId}.duckdb`);
+    }
     const inst = await DuckDBInstance.create(dbPath);
     this.instances.set(connectionId, inst);
   }
 
-  async query(connectionId: string, sql: string): Promise<DbQueryResult> {
-    await this.open(connectionId);
+  async query(
+    connectionId: string,
+    sql: string,
+    desc?: ConnectionDescriptor,
+  ): Promise<DbQueryResult> {
+    await this.open(connectionId, desc);
     const inst = this.instances.get(connectionId);
     if (!inst) return errorResult('no instance');
     const start = performance.now();
@@ -41,10 +49,11 @@ export class DuckdbDriver implements DbDriver {
     }
   }
 
-  async listTables(connectionId: string): Promise<string[]> {
+  async listTables(connectionId: string, desc?: ConnectionDescriptor): Promise<string[]> {
     const r = await this.query(
       connectionId,
       "SELECT table_name FROM information_schema.tables WHERE table_schema='main'",
+      desc,
     );
     return r.rows.map((row) => String(row[0]));
   }

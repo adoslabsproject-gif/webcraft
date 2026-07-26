@@ -23,6 +23,10 @@ export interface DbConnection {
   name: string;
   kind: DbKind;
   available: boolean;
+  /// Existing database file (sqlite/duckdb) — auto-discovered or user-added.
+  file?: string;
+  /// Server URL (redis://…, mongodb://…, libsql://…).
+  url?: string;
 }
 
 export interface TableInfo {
@@ -96,6 +100,7 @@ interface DbState {
   setActiveTable: (name: string | null) => void;
   setQuery: (q: string) => void;
   refreshSchema: () => Promise<void>;
+  refreshDriverAvailability: () => Promise<void>;
   runQuery: () => Promise<void>;
   runArbitrary: (sql: string) => Promise<QueryResult>;
 }
@@ -114,19 +119,38 @@ async function getPgliteInstance(id: string): Promise<PGlite> {
   return p;
 }
 
+/// Connections already registered with the sidecar (descriptor sent once).
+const registeredWithSidecar = new Set<string>();
+
+async function ensureRegistered(conn: DbConnection): Promise<void> {
+  if (registeredWithSidecar.has(conn.id)) return;
+  const { sidecarPost } = await import('../../lib/ipc/sidecar');
+  await sidecarPost('/db/register', {
+    connectionId: conn.id,
+    kind: conn.kind,
+    ...(conn.file ? { file: conn.file } : {}),
+    ...(conn.url ? { url: conn.url } : {}),
+  });
+  registeredWithSidecar.add(conn.id);
+}
+
 async function execOn(conn: DbConnection, sql: string): Promise<QueryResult> {
   if (conn.kind !== 'pglite') {
-    return {
-      columns: [],
-      rows: [],
-      rowsAffected: 0,
-      durationMs: 0,
-      error:
-        `⚠ Engine "${conn.kind}" requires the Node sidecar which isn't yet wired in this build. ` +
-        `Driver code lives in packages/server/src/modules/db/${conn.kind}-driver.ts — ` +
-        `the Tauri main process must spawn the sidecar at boot for queries to reach it. ` +
-        `Meanwhile use PGLite (Postgres in-process WASM) which has ~95% feature parity.`,
-    };
+    // Real sidecar drivers: register the descriptor (existing file / URL)
+    // once, then route the query through /db/query.
+    try {
+      await ensureRegistered(conn);
+      const { sidecarPost } = await import('../../lib/ipc/sidecar');
+      return await sidecarPost<QueryResult>('/db/query', { connectionId: conn.id, sql });
+    } catch (e) {
+      return {
+        columns: [],
+        rows: [],
+        rowsAffected: 0,
+        durationMs: 0,
+        error: `sidecar: ${e instanceof Error ? e.message : String(e)}`,
+      };
+    }
   }
   const start = performance.now();
   try {
@@ -241,8 +265,24 @@ export const useDbStore = create<DbState>((set, get) => ({
 
   async refreshSchema() {
     const conn = get().connections.find((c) => c.id === get().activeConnectionId);
-    if (!conn || conn.kind !== 'pglite') {
+    if (!conn) {
       set({ tables: [] });
+      return;
+    }
+    if (conn.kind !== 'pglite') {
+      // Sidecar drivers expose a uniform table list endpoint.
+      try {
+        await ensureRegistered(conn);
+        const { sidecarPost } = await import('../../lib/ipc/sidecar');
+        const { tables } = await sidecarPost<{ tables: string[] }>('/db/tables', {
+          connectionId: conn.id,
+        });
+        set({
+          tables: tables.map((name) => ({ schema: 'main', name, rowCount: null })),
+        });
+      } catch {
+        set({ tables: [] });
+      }
       return;
     }
     const r = await execOn(conn, PG_TABLE_LIST_SQL);
@@ -257,6 +297,24 @@ export const useDbStore = create<DbState>((set, get) => ({
         rowCount: row[2] === null ? null : Number(row[2]),
       })),
     });
+  },
+
+  async refreshDriverAvailability() {
+    // Ask the sidecar which drivers actually import in this build and flip
+    // connection availability accordingly (kinds stay honest per-machine).
+    try {
+      const { sidecarGet } = await import('../../lib/ipc/sidecar');
+      const { drivers } = await sidecarGet<{ drivers: Record<string, true | string> }>(
+        '/db/drivers',
+      );
+      set((s) => ({
+        connections: s.connections.map((c) =>
+          c.kind === 'pglite' ? c : { ...c, available: drivers[c.kind] === true },
+        ),
+      }));
+    } catch {
+      /* sidecar down — availability stays as-is */
+    }
   },
 
   async runQuery() {

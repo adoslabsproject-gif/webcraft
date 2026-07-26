@@ -1,6 +1,6 @@
 import * as Tabs from '@radix-ui/react-tabs';
 import { Database, Network, Plus, Sparkles, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AiSchemaDesigner } from './components/AiSchemaDesigner';
 import { DatabaseList } from './components/DatabaseList';
 import { DbCreationWizard } from './components/DbCreationWizard';
@@ -46,6 +46,13 @@ export function DbStudioView() {
   const [indexOpen, setIndexOpen] = useState(false);
   const [tab, setTab] = useState('browse');
   const activeTable = useDbStore((s) => s.activeTable);
+  const refreshDriverAvailability = useDbStore((s) => s.refreshDriverAvailability);
+
+  // Probe the sidecar for which drivers actually import in this build —
+  // flips the connection list from declared-unavailable to live.
+  useEffect(() => {
+    void refreshDriverAvailability();
+  }, [refreshDriverAvailability]);
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-[var(--color-bg)]">

@@ -32,15 +32,19 @@ fn sidecar_bundle_path() -> Option<std::path::PathBuf> {
         // dev: webcraft/apps/desktop/src-tauri → ../../packages/server/dist/sidecar.mjs
         "../../packages/server/dist/sidecar.mjs",
         "../../../packages/server/dist/sidecar.mjs",
-        // production (bundle.resources maps it as "sidecar.mjs"):
-        //   macOS  → WebCraft.app/Contents/Resources/sidecar.mjs
-        //   Windows→ next to the exe in the install dir
-        //   Linux  → AppImage usr/lib/WebCraft/sidecar.mjs (exe in usr/bin)
+        // production (bundle.resources ships "sidecar-runtime/" with dist +
+        // prod node_modules so the real DB drivers resolve):
+        //   macOS  → WebCraft.app/Contents/Resources/sidecar-runtime/…
+        //   Windows→ sidecar-runtime/ next to the exe
+        //   Linux  → AppImage usr/lib/WebCraft/sidecar-runtime/…
+        "sidecar-runtime/dist/sidecar.mjs",
+        "../Resources/sidecar-runtime/dist/sidecar.mjs",
+        "../lib/WebCraft/sidecar-runtime/dist/sidecar.mjs",
+        "../lib/webcraft/sidecar-runtime/dist/sidecar.mjs",
+        // legacy single-file layout (older builds)
         "sidecar.mjs",
         "resources/sidecar.mjs",
         "../Resources/sidecar.mjs",
-        "../lib/WebCraft/sidecar.mjs",
-        "../lib/webcraft/sidecar.mjs",
     ];
     for c in candidates.iter() {
         let p = std::path::PathBuf::from(c);
