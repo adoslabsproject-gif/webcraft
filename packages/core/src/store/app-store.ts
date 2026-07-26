@@ -69,6 +69,10 @@ interface AppState {
   /// Monaco markers in `problems` so an editor keystroke doesn't wipe the
   /// scan and vice versa. ProblemsPanel merges the two.
   scanProblems: Problem[];
+  /// True while an automatic/manual project scan runs (spinner state).
+  scanningProblems: boolean;
+  /// Why the last scan could not run (no tsc, …); null when it executed.
+  problemsScanFailure: string | null;
   setActivityPanel: (panel: ActivityPanel) => void;
   setBottomTab: (tab: BottomTab) => void;
   toggleBottomPanel: () => void;
@@ -87,6 +91,8 @@ interface AppState {
   setProblems: (problems: Problem[]) => void;
   setChatPrefill: (text: string | null) => void;
   setScanProblems: (problems: Problem[]) => void;
+  setScanningProblems: (scanning: boolean) => void;
+  setProblemsScanFailure: (failure: string | null) => void;
   /** Open the singleton DB Studio tab in the editor area (or focus it if already open). */
   openDbStudioTab: () => void;
   /** Open the singleton AI Chat tab. */
@@ -112,6 +118,8 @@ export const useAppStore = create<AppState>((set) => ({
   problems: [],
   chatPrefill: null,
   scanProblems: [],
+  scanningProblems: false,
+  problemsScanFailure: null,
   setActivityPanel: (panel: ActivityPanel) => set({ activityPanel: panel }),
   setBottomTab: (tab: BottomTab) => set({ bottomTab: tab, bottomPanelOpen: true }),
   toggleBottomPanel: () => set((s: AppState) => ({ bottomPanelOpen: !s.bottomPanelOpen })),
@@ -124,6 +132,8 @@ export const useAppStore = create<AppState>((set) => ({
   setProblems: (problems: Problem[]) => set({ problems }),
   setChatPrefill: (text: string | null) => set({ chatPrefill: text }),
   setScanProblems: (scanProblems: Problem[]) => set({ scanProblems }),
+  setScanningProblems: (scanningProblems: boolean) => set({ scanningProblems }),
+  setProblemsScanFailure: (problemsScanFailure: string | null) => set({ problemsScanFailure }),
   openEditorTab: (tab: EditorTab) =>
     set((s: AppState) => {
       if (s.editorTabs.some((t) => t.id === tab.id)) {

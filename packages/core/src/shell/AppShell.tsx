@@ -14,6 +14,8 @@ import { EditorArea } from '../features/editor/EditorArea';
 import { useMonacoMarkers } from '../features/problems/use-monaco-markers';
 import { ErrorBoundary } from '../lib/ErrorBoundary';
 import { codebaseIndex } from '../features/embeddings/codebase-index';
+import { initScheduler } from '../lib/ai/scheduler';
+import { initAutoScan } from '../features/problems/auto-scan';
 import { useAppStore } from '../store/app-store';
 
 /// Top-level app layout — VSCode/Cursor inspired 3-pane:
@@ -49,6 +51,18 @@ export function AppShell() {
       .then((u) => (unlisteners = u))
       .catch(() => {});
     return () => unlisteners.forEach((u) => u());
+  }, []);
+
+  // Background scheduler (cron_create / schedule_wakeup agent tools):
+  // restore persisted jobs and start the tick loop.
+  useEffect(() => {
+    void initScheduler();
+  }, []);
+
+  // Automatic project problem detection: scan on project open and re-scan
+  // (debounced) after every save / agent edit.
+  useEffect(() => {
+    initAutoScan();
   }, []);
 
   // ⌘B → toggle sidebar (VSCode parity).

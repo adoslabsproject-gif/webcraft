@@ -1,5 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { EventEmitter } from 'node:events';
+import { extendedPath } from '../agent/runner';
 
 /// Minimal LSP host running INSIDE the sidecar. Spawns one language server
 /// child process per language (typescript-language-server, pyright, gopls,
@@ -51,7 +52,12 @@ class LspSession extends EventEmitter {
 
   constructor(spec: LspServerSpec, public language: string) {
     super();
-    this.child = spawn(spec.command, spec.args, { stdio: 'pipe' });
+    // Extended PATH: the sidecar inherits Tauri's bare env, but language
+    // servers are installed in npm-global/homebrew dirs.
+    this.child = spawn(spec.command, spec.args, {
+      stdio: 'pipe',
+      env: { ...process.env, PATH: extendedPath() },
+    });
     this.child.stdout.on('data', (d: Buffer) => this.onData(d));
     this.child.stderr.on('data', (d: Buffer) => {
       // Pyright / typescript-language-server log to stderr verbosely — ignore.

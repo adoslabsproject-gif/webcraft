@@ -23,7 +23,9 @@ const CANDIDATE_PATHS = [
 
 /// The sidecar inherits Tauri's bare PATH — extend it so `claude` and the
 /// tools it spawns (git, node, pnpm…) resolve like in a real terminal.
-function extendedPath(): string {
+/// Shared with the LSP host (typescript-language-server & co. live in the
+/// same npm-global / homebrew dirs).
+export function extendedPath(): string {
   const home = homedir();
   const extra = [
     `${home}/.local/bin`,

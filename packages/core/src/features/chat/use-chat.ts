@@ -86,21 +86,39 @@ function mkId(prefix: string): string {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function useChat() {
-  const apiKeys = useSettingsStore((s) => s.apiKeys);
-  const activeProvider = useSettingsStore((s) => s.activeProvider);
-  const model = useSettingsStore((s) => s.model);
-  const outputStyle = useSettingsStore((s) => s.outputStyle);
-  const projectRoot = useAppStore((s) => s.projectRoot);
+/// Standing instructions from the editable CLAUDE.md files (Settings →
+/// AI memory): global (~/.claude/CLAUDE.md) + per-project.
+async function buildMemoryContext(projectRoot: string | null): Promise<string | null> {
+  const { homeDir } = await import('@tauri-apps/api/path');
+  const { readFile } = await import('../../lib/ipc/fs');
+  const parts: string[] = [];
+  try {
+    const home = (await homeDir()).replace(/\/$/, '');
+    const globalMemory = await readFile(`${home}/.claude/CLAUDE.md`);
+    if (globalMemory.trim())
+      parts.push(`# User global instructions (CLAUDE.md)\n\n${globalMemory}`);
+  } catch {
+    /* no global memory */
+  }
+  if (projectRoot) {
+    try {
+      const projectMemory = await readFile(`${projectRoot}/CLAUDE.md`);
+      if (projectMemory.trim())
+        parts.push(`# Project instructions (CLAUDE.md)\n\n${projectMemory}`);
+    } catch {
+      /* no project memory */
+    }
+  }
+  return parts.length > 0 ? parts.join('\n\n') : null;
+}
 
-  const messages = useChatStore((s) => s.messages);
-  const streaming = useChatStore((s) => s.streaming);
-  const error = useChatStore((s) => s.error);
-  const pendingText = useChatStore((s) => s.pendingText);
-  const status = useChatStore((s) => s.status);
-
-  const send = useCallback(
-    async (text: string, images?: PendingImage[]) => {
+/// Module-level send — everything it needs comes from store getState(), so
+/// non-React callers (the cron scheduler, future automations) can inject a
+/// message exactly as if the user typed it.
+export async function sendChat(text: string, images?: PendingImage[]): Promise<void> {
+  const { apiKeys, activeProvider, model, outputStyle } = useSettingsStore.getState();
+  const projectRoot = useAppStore.getState().projectRoot;
+  {
       const hasImages = images && images.length > 0;
       if (!text.trim() && !hasImages) return;
       const store = useChatStore.getState();
@@ -152,6 +170,12 @@ export function useChat() {
       const editorCtx = buildEditorContext();
       const projectCtx = await buildProjectContext(projectRoot);
       const styleDirective = OUTPUT_STYLE_DIRECTIVES[outputStyle];
+      // AI memory (CLAUDE.md, editable in Settings): injected for API
+      // providers; Claude Code reads the same files natively — skip to
+      // avoid double context.
+      const memoryCtx = providerExecutesOwnTools(activeProvider)
+        ? null
+        : await buildMemoryContext(projectRoot);
       const baseSystem = providerExecutesOwnTools(activeProvider)
         ? SYSTEM_PROMPT_CLAUDE_CODE
         : providerSupportsTools(activeProvider)
@@ -160,6 +184,7 @@ export function useChat() {
       const systemPrompt = [
         baseSystem,
         styleDirective || null,
+        memoryCtx,
         projectRoot ? `Current project root: ${projectRoot}` : 'No project folder open yet.',
         projectCtx,
         editorCtx ? `# Live IDE context\n\n${editorCtx}` : null,
@@ -189,9 +214,17 @@ export function useChat() {
         if (activeAbort === abort) activeAbort = null;
         useChatStore.getState().endStream();
       }
-    },
-    [activeProvider, apiKeys, model, projectRoot, outputStyle],
-  );
+  }
+}
+
+export function useChat() {
+  const messages = useChatStore((s) => s.messages);
+  const streaming = useChatStore((s) => s.streaming);
+  const error = useChatStore((s) => s.error);
+  const pendingText = useChatStore((s) => s.pendingText);
+  const status = useChatStore((s) => s.status);
+
+  const send = useCallback((text: string, images?: PendingImage[]) => sendChat(text, images), []);
 
   const stop = useCallback(() => {
     activeAbort?.abort();

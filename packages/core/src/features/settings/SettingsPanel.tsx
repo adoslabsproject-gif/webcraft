@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import type { ClaudeCodePermissionMode, OutputStyle, Provider } from '../../store/settings-store';
 import { useSettingsStore } from '../../store/settings-store';
 import { McpSettings } from './McpSettings';
+import { MemorySettings } from './MemorySettings';
 
 const PROVIDERS: { id: Provider; label: string; hint: string; needsKey: boolean }[] = [
   {
@@ -98,6 +99,10 @@ export function SettingsPanel() {
                   onSave={(v) => setApiKey(p.id, v)}
                 />
               ))}
+            </Section>
+
+            <Section title="AI memory">
+              <MemorySettings />
             </Section>
 
             <Section title="Output style">

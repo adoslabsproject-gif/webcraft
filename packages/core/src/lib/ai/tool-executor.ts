@@ -463,9 +463,39 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
     return ok(formatted);
   },
 
-  find_references: async () => err('find_references requires LSP server. Phase pending.'),
-  goto_definition: async () => err('goto_definition requires LSP server. Phase pending.'),
-  rename_symbol: async () => err('rename_symbol requires LSP server. Phase pending.'),
+  find_references: async (c) => {
+    const { lspReferences } = await import('./lsp-tools');
+    try {
+      return ok(
+        await lspReferences(str(c, 'path'), Number(str(c, 'line')), Number(str(c, 'column'))),
+      );
+    } catch (e) {
+      return err(String(e instanceof Error ? e.message : e));
+    }
+  },
+  goto_definition: async (c) => {
+    const { lspDefinition } = await import('./lsp-tools');
+    try {
+      return ok(
+        await lspDefinition(str(c, 'path'), Number(str(c, 'line')), Number(str(c, 'column'))),
+      );
+    } catch (e) {
+      return err(String(e instanceof Error ? e.message : e));
+    }
+  },
+  rename_symbol: async (c) => {
+    const { lspRename, guessColumn } = await import('./lsp-tools');
+    try {
+      const path = str(c, 'path');
+      const line = Number(str(c, 'line'));
+      const column = optStr(c, 'column')
+        ? Number(str(c, 'column'))
+        : await guessColumn(path, line, optStr(c, 'symbol'));
+      return ok(await lspRename(path, line, column, str(c, 'new_name')));
+    } catch (e) {
+      return err(String(e instanceof Error ? e.message : e));
+    }
+  },
 
   get_diagnostics: async (c) => {
     const pathFilter = optStr(c, 'path');
@@ -489,7 +519,15 @@ const HANDLERS: Record<string, (call: ToolUseBlock) => Promise<{ content: string
 
   get_symbols: async (c) => {
     const path = str(c, 'path');
-    // Best-effort: regex parse for top-level symbols (proper LSP comes later)
+    // Real LSP outline first (documentSymbol via sidecar language server);
+    // regex fallback only for languages without a server installed.
+    try {
+      const { lspDocumentSymbols } = await import('./lsp-tools');
+      const outline = await lspDocumentSymbols(path);
+      if (outline) return ok(outline);
+    } catch {
+      /* fall through to regex */
+    }
     const text = await readFile(path);
     const out: string[] = [];
     const patterns = [
@@ -806,15 +844,71 @@ Return your final answer as concise text (max 400 words). No questions back.`;
     if (!proc) return err(`No background process ${id}`);
     return ok(proc.logs.slice(-tail).join('\n') || '(no output yet)');
   },
-  schedule_wakeup: async () =>
-    err('schedule_wakeup requires the background scheduler service. Phase pending.'),
-  cron_create: async () => err('cron_create requires the background scheduler. Phase pending.'),
-  cron_list: async () => err('cron_list requires the background scheduler. Phase pending.'),
-  cron_delete: async () => err('cron_delete requires the background scheduler. Phase pending.'),
+  schedule_wakeup: async (c) => {
+    const { createWakeup } = await import('./scheduler');
+    try {
+      const job = await createWakeup(Number(str(c, 'delay_seconds')), str(c, 'reason'));
+      return ok(
+        `Wake-up scheduled: id=${job.id}, fires at ${new Date(job.nextRun).toLocaleString()}. The prompt will be injected into this chat.`,
+      );
+    } catch (e) {
+      return err(String(e instanceof Error ? e.message : e));
+    }
+  },
+  cron_create: async (c) => {
+    const { createCronJob } = await import('./scheduler');
+    try {
+      const job = await createCronJob(str(c, 'expression'), str(c, 'prompt'));
+      return ok(
+        `Cron job created: id=${job.id}, expression="${job.expression}", next run ${new Date(job.nextRun).toLocaleString()}.`,
+      );
+    } catch (e) {
+      return err(String(e instanceof Error ? e.message : e));
+    }
+  },
+  cron_list: async () => {
+    const { listJobs } = await import('./scheduler');
+    const all = listJobs();
+    if (all.length === 0) return ok('(no scheduled jobs)');
+    return ok(
+      all
+        .map(
+          (j) =>
+            `${j.id} [${j.kind}${j.expression ? ` "${j.expression}"` : ''}] next=${new Date(j.nextRun).toLocaleString()} — ${j.prompt.slice(0, 80)}`,
+        )
+        .join('\n'),
+    );
+  },
+  cron_delete: async (c) => {
+    const { deleteJob } = await import('./scheduler');
+    const id = optStr(c, 'cron_id') ?? str(c, 'id');
+    return (await deleteJob(id)) ? ok(`Deleted job ${id}.`) : err(`No job with id ${id}.`);
+  },
 
   // ── Skills ──────────────────────────────────────────────────────────
-  skill_list: async () => ok('(no skills registered in this build)'),
-  skill_invoke: async () => err('skill_invoke not yet wired'),
+  skill_list: async () => {
+    const { TOOL_TEMPLATES } = await import('../../features/tool-library/templates');
+    return ok(
+      TOOL_TEMPLATES.map(
+        (t) => `${t.id} [${t.language}/${t.category}] — ${t.title}: ${t.description}`,
+      ).join('\n'),
+    );
+  },
+  skill_invoke: async (c) => {
+    const { TOOL_TEMPLATES } = await import('../../features/tool-library/templates');
+    const name = str(c, 'name').toLowerCase();
+    const tpl = TOOL_TEMPLATES.find(
+      (t) => t.id.toLowerCase() === name || t.title.toLowerCase() === name,
+    );
+    if (!tpl) {
+      return err(
+        `No template named "${name}". Use skill_list for available ids: ${TOOL_TEMPLATES.map((t) => t.id).join(', ')}`,
+      );
+    }
+    return ok(
+      `Template "${tpl.title}" (${tpl.language}) — suggested file: ${tpl.suggestedFileName}\n\n${tpl.code}`,
+    );
+  },
 
   // ── MCP ─────────────────────────────────────────────────────────────
   mcp_list_servers: async () => {

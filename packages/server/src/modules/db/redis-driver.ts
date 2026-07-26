@@ -49,7 +49,7 @@ export class RedisDriver implements DbDriver {
   async close(connectionId: string): Promise<void> {
     const c = this.clients.get(connectionId);
     if (c) {
-      c.disconnect();
+      c.disconnect?.();
       this.clients.delete(connectionId);
     }
   }

@@ -146,6 +146,9 @@ export function useEditor() {
       t.id === active.id ? { ...t, dirty: false } : t,
     );
     useAppStore.setState({ editorTabs: updated });
+    // Manual save = fs change: retriggers the automatic project problem
+    // scan (and any other fs subscriber) exactly like agent tool edits.
+    store.notifyFsChange();
   }, [active, content, kind]);
 
   return { active, content, language, loading, error, kind, onChange, save };

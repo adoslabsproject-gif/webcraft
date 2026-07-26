@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAppStore, type Problem } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
 import { revealLocation } from '../editor/editor-controller';
-import { scanProject } from './project-scan';
+import { runProjectScan } from './auto-scan';
 
 /// Problems panel — diagnostics with per-issue Copy / How-to-fix / AI-fix
 /// actions and a bulk "Copy all" in the header. Messages are selectable
@@ -27,13 +27,12 @@ import { scanProject } from './project-scan';
 export function ProblemsPanel() {
   const liveProblems = useAppStore((s) => s.problems);
   const scanProblems = useAppStore((s) => s.scanProblems);
-  const setScanProblems = useAppStore((s) => s.setScanProblems);
   const projectRoot = useAppStore((s) => s.projectRoot);
   const openTab = useAppStore((s) => s.openEditorTab);
   const openChatTab = useAppStore((s) => s.openChatTab);
+  const scanning = useAppStore((s) => s.scanningProblems);
+  const scanFailure = useAppStore((s) => s.problemsScanFailure);
   const [copiedAll, setCopiedAll] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [scanFailure, setScanFailure] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; problem: Problem } | null>(null);
 
   // Live Monaco markers (open files) + whole-project scan, deduped by
@@ -43,21 +42,6 @@ export function ProblemsPanel() {
     ...liveProblems,
     ...scanProblems.filter((p) => !liveKeys.has(`${p.path}:${p.line}:${p.column}`)),
   ];
-
-  async function runScan() {
-    if (!projectRoot || scanning) return;
-    setScanning(true);
-    setScanFailure(null);
-    try {
-      const result = await scanProject(projectRoot);
-      setScanProblems(result.problems);
-      setScanFailure(result.failure);
-    } catch (e) {
-      setScanFailure(String(e));
-    } finally {
-      setScanning(false);
-    }
-  }
 
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.filter((p) => p.severity === 'warning').length;
@@ -75,13 +59,13 @@ export function ProblemsPanel() {
   const scanButton = (
     <button
       type="button"
-      onClick={() => void runScan()}
+      onClick={() => void runProjectScan()}
       disabled={!projectRoot || scanning}
-      title="Run tsc --noEmit on the whole project"
+      title="Project problems refresh automatically on open and on every save — this forces a re-scan now"
       className="flex items-center gap-1 rounded border border-[var(--color-border)] px-2 py-0.5 text-[10px] text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-hover)] disabled:opacity-40"
     >
       <RefreshCw className={`h-3 w-3 ${scanning ? 'animate-spin' : ''}`} />
-      {scanning ? 'Scanning…' : 'Scan project'}
+      {scanning ? 'Scanning…' : 'Re-scan'}
     </button>
   );
 
@@ -90,8 +74,8 @@ export function ProblemsPanel() {
       <div className="flex h-full flex-col items-center justify-center gap-2 text-[var(--color-fg-dim)]">
         <CheckCircle2 className="h-8 w-8 text-[var(--color-success)]" />
         <p className="text-xs">
-          No problems in open files. Open files are checked live; the whole project is checked on
-          demand.
+          No problems detected. Open files are checked live; the whole project re-scans
+          automatically on open and after every save.
         </p>
         {scanButton}
         {scanFailure ? (

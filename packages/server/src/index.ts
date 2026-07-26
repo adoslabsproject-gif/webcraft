@@ -256,12 +256,14 @@ function hashEmbedding(text: string, dim: number): number[] {
     const c = text.charCodeAt(i);
     h1 = ((h1 ^ c) * 16777619) >>> 0;
     h2 = ((h2 << 5) + h2 + c) >>> 0;
-    out[(h1 + i) % dim] += ((h2 % 200) - 100) / 100;
-    out[(h2 + i) % dim] += ((h1 % 200) - 100) / 100;
+    const a = (h1 + i) % dim;
+    const b = (h2 + i) % dim;
+    out[a] = (out[a] ?? 0) + ((h2 % 200) - 100) / 100;
+    out[b] = (out[b] ?? 0) + ((h1 % 200) - 100) / 100;
   }
   let norm = 0;
   for (const v of out) norm += v * v;
   norm = Math.sqrt(norm) || 1;
-  for (let i = 0; i < dim; i++) out[i] /= norm;
+  for (let i = 0; i < dim; i++) out[i] = (out[i] ?? 0) / norm;
   return out;
 }

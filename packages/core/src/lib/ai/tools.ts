@@ -420,6 +420,8 @@ export const TOOLS: ToolDefinition[] = [
       properties: {
         path: { type: 'string', description: 'File containing the symbol declaration.' },
         line: { type: 'string', description: '1-indexed line of the symbol.' },
+        column: { type: 'string', description: 'Optional 1-indexed column of the symbol.' },
+        symbol: { type: 'string', description: 'Optional current identifier (used to locate the column when omitted).' },
         new_name: { type: 'string', description: 'Replacement identifier.' },
       },
       required: ['path', 'line', 'new_name'],
@@ -639,12 +641,14 @@ export const TOOLS: ToolDefinition[] = [
   },
   {
     name: 'skill_list',
-    description: 'List user-invocable Skills (slash commands).',
+    description:
+      'List the Tool Library templates (id, language, category, description) fetchable via skill_invoke.',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
   {
     name: 'skill_invoke',
-    description: 'Execute a registered Skill by name with optional args.',
+    description:
+      'Fetch a Tool Library template by id/title (full runnable code snippet to adapt into the project). Use skill_list first for available ids.',
     input_schema: {
       type: 'object',
       properties: {
