@@ -538,21 +538,24 @@ const HANDLERS: Record<
 
   get_diagnostics: async (c) => {
     const pathFilter = optStr(c, 'path');
-    const problems = useAppStore
-      .getState()
-      .problems.filter((p) => !pathFilter || p.path === pathFilter || p.path.endsWith(pathFilter));
-    if (problems.length > 0) {
+    const state = useAppStore.getState();
+    // Live Monaco markers (open files) + whole-project scan results
+    // (tsc/lint/clippy/pyright/go vet/php/secrets/audit) — the same merged
+    // truth the Problems panel shows.
+    const liveKeys = new Set(state.problems.map((p) => `${p.path}:${p.line}:${p.column}`));
+    const merged = [
+      ...state.problems,
+      ...state.scanProblems.filter((p) => !liveKeys.has(`${p.path}:${p.line}:${p.column}`)),
+    ].filter((p) => !pathFilter || p.path === pathFilter || p.path.endsWith(pathFilter));
+    if (merged.length > 0) {
       return ok(
-        problems
+        merged
           .map((p) => `[${p.severity}] ${p.path}:${p.line}:${p.column} — ${p.message}`)
           .join('\n'),
       );
     }
-    // Be explicit about the scope instead of a bare "(no diagnostics)" that
-    // reads as "the whole project is clean": Monaco only analyzes files
-    // currently open in the editor.
     return ok(
-      '(no diagnostics in currently open editor files — this does NOT cover the whole project; run type_check for a full TypeScript pass or lint_file on specific files)',
+      '(no diagnostics — includes the automatic whole-project scan; if the scan has not run yet, trigger it from the Problems tab or wait a few seconds after opening the project)',
     );
   },
 

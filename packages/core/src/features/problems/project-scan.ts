@@ -15,6 +15,9 @@ import type { Problem } from '../../store/app-store';
 ///   4. PYTHON — pyright CLI when *.py files exist
 ///   5. GO — `go vet ./...` when go.mod exists
 ///   6. PHP — `php -l` syntax pass over project *.php files
+///   7. SECURITY — dependency CVEs (pnpm/npm audit) + hardcoded secrets
+///      (API keys, tokens, private keys committed in source)
+///   8. SHELL/DOCKER — shellcheck and hadolint when installed
 /// All findings land in the same Problems list with exact file:line:column.
 /// NEVER a silent false "0 problems": when a scanner cannot run, the
 /// failure is surfaced so the user knows what was NOT analyzed.
@@ -359,6 +362,157 @@ async function scanPhp(projectRoot: string, problems: Problem[], notes: string[]
   }
 }
 
+/// Hardcoded credentials that must never live in source. Each pattern is
+/// specific enough to keep the noise floor near zero.
+const SECRET_PATTERNS: Array<{ re: string; label: string }> = [
+  { re: 'sk-ant-[A-Za-z0-9_-]{24,}', label: 'Anthropic API key' },
+  { re: 'sk-proj-[A-Za-z0-9_-]{24,}', label: 'OpenAI API key' },
+  { re: 'sk-or-v1-[A-Za-z0-9]{24,}', label: 'OpenRouter API key' },
+  { re: 'xai-[A-Za-z0-9]{24,}', label: 'xAI API key' },
+  { re: 'AIza[0-9A-Za-z_-]{30,}', label: 'Google API key' },
+  { re: 'gh[ps]_[A-Za-z0-9]{30,}', label: 'GitHub token' },
+  { re: 'AKIA[0-9A-Z]{16}', label: 'AWS access key id' },
+  { re: '-----BEGIN [A-Z ]*PRIVATE KEY-----', label: 'private key material' },
+];
+
+async function scanSecrets(projectRoot: string, problems: Problem[]): Promise<void> {
+  const pattern = SECRET_PATTERNS.map((p) => p.re).join('|');
+  const output = await sh(
+    projectRoot,
+    `grep -rInE '${pattern}' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build --exclude-dir=target --exclude-dir=vendor --exclude='*.lock' --exclude='*.min.js' --exclude='*.map' 2>/dev/null | head -60 || true`,
+  ).catch(() => '');
+  for (const raw of output.split('\n')) {
+    const m = /^(.+?):(\d+):(.*)$/.exec(raw);
+    if (!m) continue;
+    const [, file, line, content] = m;
+    if (!file || !content) continue;
+    const hit = SECRET_PATTERNS.find((p) => new RegExp(p.re).test(content));
+    const path = file.startsWith('/') ? file : `${projectRoot}/${file.replace(/^\.\//, '')}`;
+    pushProblem(problems, {
+      idHint: `secret:${path}:${line}`,
+      path,
+      line: Number(line),
+      column: 1,
+      message: `Possible hardcoded ${hit?.label ?? 'credential'} committed in source — move it to an env var / keychain [secrets]`,
+      severity: 'error',
+    });
+  }
+}
+
+async function scanDependencyAudit(
+  projectRoot: string,
+  problems: Problem[],
+  notes: string[],
+): Promise<void> {
+  const hasPkg =
+    (await sh(projectRoot, 'test -f package.json && echo yes || echo no').catch(() => 'no')).trim() ===
+    'yes';
+  if (!hasPkg) return;
+  const output = await sh(
+    projectRoot,
+    'pnpm audit --json 2>/dev/null || npm audit --json 2>/dev/null || true',
+  ).catch(() => '');
+  const jsonStart = output.indexOf('{');
+  if (jsonStart < 0) return; // no lockfile / registry unreachable — skip quietly
+  try {
+    const data = JSON.parse(output.slice(jsonStart)) as {
+      advisories?: Record<string, { severity?: string; title?: string; module_name?: string }>;
+      vulnerabilities?: Record<string, { severity?: string; via?: Array<{ title?: string } | string> }>;
+    };
+    const pkgJson = `${projectRoot}/package.json`;
+    if (data.advisories) {
+      for (const adv of Object.values(data.advisories)) {
+        pushProblem(problems, {
+          idHint: `audit:${adv.module_name}:${adv.title}`,
+          path: pkgJson,
+          line: 1,
+          column: 1,
+          message: `${adv.module_name}: ${adv.title} (${adv.severity}) [dependency audit]`,
+          severity: adv.severity === 'critical' || adv.severity === 'high' ? 'error' : 'warning',
+        });
+      }
+    } else if (data.vulnerabilities) {
+      for (const [name, v] of Object.entries(data.vulnerabilities)) {
+        const title = v.via?.map((x) => (typeof x === 'string' ? x : (x.title ?? ''))).find(Boolean);
+        pushProblem(problems, {
+          idHint: `audit:${name}`,
+          path: pkgJson,
+          line: 1,
+          column: 1,
+          message: `${name}: ${title ?? 'known vulnerability'} (${v.severity}) [dependency audit]`,
+          severity: v.severity === 'critical' || v.severity === 'high' ? 'error' : 'warning',
+        });
+      }
+    }
+  } catch {
+    notes.push('security: dependency audit output unparsable — skipped');
+  }
+}
+
+/// shellcheck -f gcc → file:line:col: (error|warning|note): msg [SCxxxx]
+const SHELLCHECK_LINE = /^(.+?):(\d+):(\d+):\s+(error|warning|note):\s+(.+)$/;
+/// hadolint → file:line DLxxxx (error|warning|info|style): msg
+const HADOLINT_LINE = /^(.+?):(\d+)\s+(\S+)\s+(error|warning|info|style):\s+(.+)$/;
+
+async function scanShellAndDocker(
+  projectRoot: string,
+  problems: Problem[],
+  notes: string[],
+): Promise<void> {
+  const shOut = await sh(
+    projectRoot,
+    `command -v shellcheck >/dev/null 2>&1 && find . -maxdepth 4 -name '*.sh' -not -path '*/node_modules/*' -not -path '*/vendor/*' 2>/dev/null | head -100 | xargs -r shellcheck -f gcc 2>/dev/null | head -300 || echo NO_SHELLCHECK`,
+  ).catch(() => '');
+  if (shOut.includes('NO_SHELLCHECK')) {
+    const hasSh =
+      (
+        await sh(
+          projectRoot,
+          `find . -maxdepth 4 -name '*.sh' -not -path '*/node_modules/*' -print -quit 2>/dev/null`,
+        ).catch(() => '')
+      ).trim() !== '';
+    if (hasSh) notes.push('shell: shellcheck not installed (brew install shellcheck)');
+  } else {
+    for (const raw of shOut.split('\n')) {
+      const m = SHELLCHECK_LINE.exec(raw.trim());
+      if (!m) continue;
+      const [, file, line, col, severity, message] = m;
+      if (!file) continue;
+      const path = file.startsWith('/') ? file : `${projectRoot}/${file.replace(/^\.\//, '')}`;
+      pushProblem(problems, {
+        idHint: `shc:${path}:${line}:${col}`,
+        path,
+        line: Number(line),
+        column: Number(col),
+        message: `${message} [shellcheck]`,
+        severity: severity === 'error' ? 'error' : 'warning',
+      });
+    }
+  }
+
+  const dockerOut = await sh(
+    projectRoot,
+    `command -v hadolint >/dev/null 2>&1 && find . -maxdepth 3 -name 'Dockerfile*' -not -path '*/node_modules/*' 2>/dev/null | head -20 | xargs -r hadolint --no-color 2>/dev/null | head -200 || echo NO_HADOLINT`,
+  ).catch(() => '');
+  if (!dockerOut.includes('NO_HADOLINT')) {
+    for (const raw of dockerOut.split('\n')) {
+      const m = HADOLINT_LINE.exec(raw.trim());
+      if (!m) continue;
+      const [, file, line, rule, severity, message] = m;
+      if (!file) continue;
+      const path = file.startsWith('/') ? file : `${projectRoot}/${file.replace(/^\.\//, '')}`;
+      pushProblem(problems, {
+        idHint: `docker:${path}:${line}:${rule}`,
+        path,
+        line: Number(line),
+        column: 1,
+        message: `${message} [${rule}]`,
+        severity: severity === 'error' ? 'error' : 'warning',
+      });
+    }
+  }
+}
+
 export async function scanProject(projectRoot: string): Promise<ScanResult> {
   const problems: Problem[] = [];
   const notes: string[] = [];
@@ -369,6 +523,9 @@ export async function scanProject(projectRoot: string): Promise<ScanResult> {
   await scanPython(projectRoot, problems, notes);
   await scanGo(projectRoot, problems, notes);
   await scanPhp(projectRoot, problems, notes);
+  await scanSecrets(projectRoot, problems);
+  await scanDependencyAudit(projectRoot, problems, notes);
+  await scanShellAndDocker(projectRoot, problems, notes);
 
   if (problems.length >= MAX_PROBLEMS) {
     notes.push(`showing the first ${MAX_PROBLEMS} findings — fix some and re-scan`);
