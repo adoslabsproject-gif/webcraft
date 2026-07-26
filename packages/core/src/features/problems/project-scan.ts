@@ -12,6 +12,9 @@ import type { Problem } from '../../store/app-store';
 ///      project
 ///   3. RUST — `cargo clippy` (fallback `cargo check`) for every workspace
 ///      root Cargo.toml
+///   4. PYTHON — pyright CLI when *.py files exist
+///   5. GO — `go vet ./...` when go.mod exists
+///   6. PHP — `php -l` syntax pass over project *.php files
 /// All findings land in the same Problems list with exact file:line:column.
 /// NEVER a silent false "0 problems": when a scanner cannot run, the
 /// failure is surfaced so the user knows what was NOT analyzed.
@@ -254,6 +257,108 @@ async function scanRust(projectRoot: string, problems: Problem[], notes: string[
   }
 }
 
+/// pyright CLI: path:line:col - (error|warning): message
+const PYRIGHT_LINE = /^(.+?):(\d+):(\d+)\s+-\s+(error|warning):\s+(.+)$/;
+/// go vet / go build: path.go:line:col: message
+const GO_LINE = /^(.+?\.go):(\d+):(\d+):\s+(.+)$/;
+/// php -l: PHP Parse error:  syntax error… in /path on line N
+const PHP_LINE = /^(?:PHP\s+)?(Parse|Fatal) error:\s+(.+?) in (.+?) on line (\d+)$/;
+
+async function scanPython(projectRoot: string, problems: Problem[], notes: string[]): Promise<void> {
+  const hasPy =
+    (
+      await sh(
+        projectRoot,
+        `find . -maxdepth 4 -name '*.py' -not -path '*/node_modules/*' -not -path '*/.venv/*' -not -path '*/venv/*' -print -quit 2>/dev/null`,
+      ).catch(() => '')
+    ).trim() !== '';
+  if (!hasPy) return;
+  const output = await sh(
+    projectRoot,
+    'pyright --outputformat text . 2>&1 | head -400 || pyright . 2>&1 | head -400 || true',
+  ).catch(() => '');
+  if (/command not found/i.test(output)) {
+    notes.push('python: pyright not found (npm i -g pyright) — Python not analyzed');
+    return;
+  }
+  for (const raw of output.split('\n')) {
+    const m = PYRIGHT_LINE.exec(raw.trim());
+    if (!m) continue;
+    const [, file, line, col, severity, message] = m;
+    const path = file!.startsWith('/') ? file! : `${projectRoot}/${file}`;
+    pushProblem(problems, {
+      idHint: `py:${path}:${line}:${col}:${(message ?? '').slice(0, 40)}`,
+      path,
+      line: Number(line),
+      column: Number(col),
+      message: `${message} [pyright]`,
+      severity: severity === 'error' ? 'error' : 'warning',
+    });
+  }
+}
+
+async function scanGo(projectRoot: string, problems: Problem[], notes: string[]): Promise<void> {
+  const hasGo =
+    (await sh(projectRoot, 'test -f go.mod && echo yes || echo no').catch(() => 'no')).trim() ===
+    'yes';
+  if (!hasGo) return;
+  const output = await sh(projectRoot, 'go vet ./... 2>&1 | head -300 || true').catch(() => '');
+  if (/command not found/i.test(output)) {
+    notes.push('go: toolchain not found — Go not analyzed');
+    return;
+  }
+  for (const raw of output.split('\n')) {
+    const m = GO_LINE.exec(raw.trim());
+    if (!m) continue;
+    const [, file, line, col, message] = m;
+    if (!file) continue;
+    const path = file.startsWith('/') ? file : `${projectRoot}/${file.replace(/^\.\//, '')}`;
+    pushProblem(problems, {
+      idHint: `go:${path}:${line}:${col}:${(message ?? '').slice(0, 40)}`,
+      path,
+      line: Number(line),
+      column: Number(col),
+      message: `${message} [go vet]`,
+      // vet reports both compile errors and suspicious constructs; compile
+      // failures dominate its output when present, so error is the safer bucket.
+      severity: 'error',
+    });
+  }
+}
+
+async function scanPhp(projectRoot: string, problems: Problem[], notes: string[]): Promise<void> {
+  const hasPhp =
+    (
+      await sh(
+        projectRoot,
+        `find . -maxdepth 4 -name '*.php' -not -path '*/node_modules/*' -not -path '*/vendor/*' -print -quit 2>/dev/null`,
+      ).catch(() => '')
+    ).trim() !== '';
+  if (!hasPhp) return;
+  const output = await sh(
+    projectRoot,
+    `find . -maxdepth 5 -name '*.php' -not -path '*/node_modules/*' -not -path '*/vendor/*' 2>/dev/null | head -300 | while read -r f; do php -l "$f" 2>&1 | grep -v '^No syntax errors'; done || true`,
+  ).catch(() => '');
+  if (/command not found/i.test(output)) {
+    notes.push('php: interpreter not found — PHP not analyzed');
+    return;
+  }
+  for (const raw of output.split('\n')) {
+    const m = PHP_LINE.exec(raw.trim());
+    if (!m) continue;
+    const [, , message, file, line] = m;
+    const path = file!.startsWith('/') ? file! : `${projectRoot}/${file!.replace(/^\.\//, '')}`;
+    pushProblem(problems, {
+      idHint: `php:${path}:${line}`,
+      path,
+      line: Number(line),
+      column: 1,
+      message: `${message} [php -l]`,
+      severity: 'error',
+    });
+  }
+}
+
 export async function scanProject(projectRoot: string): Promise<ScanResult> {
   const problems: Problem[] = [];
   const notes: string[] = [];
@@ -261,6 +366,9 @@ export async function scanProject(projectRoot: string): Promise<ScanResult> {
   const configs = await scanTypescript(projectRoot, problems, notes);
   await scanLint(projectRoot, problems, notes);
   await scanRust(projectRoot, problems, notes);
+  await scanPython(projectRoot, problems, notes);
+  await scanGo(projectRoot, problems, notes);
+  await scanPhp(projectRoot, problems, notes);
 
   if (problems.length >= MAX_PROBLEMS) {
     notes.push(`showing the first ${MAX_PROBLEMS} findings — fix some and re-scan`);

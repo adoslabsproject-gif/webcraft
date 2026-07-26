@@ -102,6 +102,12 @@ export function StatusBar() {
           <MessageSquare className="h-3 w-3" />
           {activeProvider}
         </span>
+        <span
+          className="text-white/60"
+          title="Build (git hash · compile time) — quote this when reporting issues"
+        >
+          {typeof __BUILD_ID__ === 'string' ? __BUILD_ID__ : 'dev'}
+        </span>
       </div>
     </footer>
   );

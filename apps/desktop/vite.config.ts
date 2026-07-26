@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process';
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
@@ -5,8 +6,23 @@ import { defineConfig } from 'vite';
 // Tauri expects a fixed port and does not handle hot-reloading on its own
 const TAURI_DEV_HOST = process.env.TAURI_DEV_HOST;
 
+/// Build identifier baked into the bundle — shown in the StatusBar so
+/// "which build am I actually running?" is answerable at a glance instead
+/// of guessed from behavior.
+function buildId(): string {
+  let hash = 'nogit';
+  try {
+    hash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  } catch {
+    /* shallow/exported tree */
+  }
+  const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  return `${hash} · ${stamp}`;
+}
+
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
+  define: { __BUILD_ID__: JSON.stringify(buildId()) },
   clearScreen: false,
   server: {
     // Deliberately NOT 1420 (Tauri default). WebCraft is an IDE that the
