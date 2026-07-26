@@ -44,7 +44,7 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
   const closeEditorTab = useAppStore((s) => s.closeEditorTab);
   const openChatTab = useAppStore((s) => s.openChatTab);
 
-  const ready = Boolean(apiKey);
+  const ready = activeProvider === 'claude-code' || Boolean(apiKey);
   const { messages, streaming, error, pendingText, status, send, stop } = useChat();
 
   useEffect(() => {

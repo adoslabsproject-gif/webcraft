@@ -78,6 +78,18 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { tables });
     }
 
+    // ── Claude Code bridge ────────────────────────────────────────────
+    if (req.method === 'GET' && req.url === '/agent/available') {
+      const agent = await import('./modules/agent/runner');
+      return agent.agentAvailability((result) => send(res, 200, result));
+    }
+
+    if (req.method === 'POST' && req.url === '/agent/run') {
+      const agent = await import('./modules/agent/runner');
+      const body = await readJson<import('./modules/agent/runner').AgentRunRequest>(req);
+      return agent.runAgent(body, req, res);
+    }
+
     if (req.method === 'POST' && req.url === '/rag/index') {
       const body = await readJson<{ root: string }>(req);
       const stats = await ragIndex.build(body.root);

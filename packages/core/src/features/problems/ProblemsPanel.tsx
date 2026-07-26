@@ -254,7 +254,9 @@ function ProblemRow({
   const [showHint, setShowHint] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
   const [copied, setCopied] = useState(false);
-  const aiReady = useSettingsStore((s) => Boolean(s.apiKeys[s.activeProvider]));
+  const aiReady = useSettingsStore(
+    (s) => s.activeProvider === 'claude-code' || Boolean(s.apiKeys[s.activeProvider]),
+  );
 
   const Icon =
     problem.severity === 'error'

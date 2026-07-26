@@ -1,16 +1,28 @@
 import { Eye, EyeOff, Save, Settings as SettingsIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { OutputStyle, Provider } from '../../store/settings-store';
+import type { ClaudeCodePermissionMode, OutputStyle, Provider } from '../../store/settings-store';
 import { useSettingsStore } from '../../store/settings-store';
 import { McpSettings } from './McpSettings';
 
-const PROVIDERS: { id: Provider; label: string; hint: string }[] = [
-  { id: 'anthropic', label: 'Anthropic', hint: 'Claude API key (sk-ant-...)' },
-  { id: 'openai', label: 'OpenAI', hint: 'OpenAI API key (sk-...)' },
-  { id: 'openrouter', label: 'OpenRouter', hint: 'OpenRouter key (sk-or-...)' },
-  { id: 'deepseek', label: 'DeepSeek', hint: 'DeepSeek API key (sk-...)' },
-  { id: 'grok', label: 'Grok (x.ai)', hint: 'xAI API key (xai-...)' },
-  { id: 'gemini', label: 'Gemini', hint: 'Google AI Studio key (AIza...)' },
+const PROVIDERS: { id: Provider; label: string; hint: string; needsKey: boolean }[] = [
+  {
+    id: 'claude-code',
+    label: 'Claude Code (local)',
+    hint: 'Your installed claude CLI — subscription, no API billing',
+    needsKey: false,
+  },
+  { id: 'anthropic', label: 'Anthropic', hint: 'Claude API key (sk-ant-...)', needsKey: true },
+  { id: 'openai', label: 'OpenAI', hint: 'OpenAI API key (sk-...)', needsKey: true },
+  { id: 'openrouter', label: 'OpenRouter', hint: 'OpenRouter key (sk-or-...)', needsKey: true },
+  { id: 'deepseek', label: 'DeepSeek', hint: 'DeepSeek API key (sk-...)', needsKey: true },
+  { id: 'grok', label: 'Grok (x.ai)', hint: 'xAI API key (xai-...)', needsKey: true },
+  { id: 'gemini', label: 'Gemini', hint: 'Google AI Studio key (AIza...)', needsKey: true },
+];
+
+const CC_PERMISSION_MODES: { id: ClaudeCodePermissionMode; label: string; hint: string }[] = [
+  { id: 'acceptEdits', label: 'Accept edits', hint: 'File edits auto-approved; risky commands blocked' },
+  { id: 'plan', label: 'Plan only', hint: 'Read-only: proposes a plan, never touches files' },
+  { id: 'bypassPermissions', label: 'Bypass (YOLO)', hint: 'Approves everything — use with care' },
 ];
 
 /// Settings panel — provider selection + API keys (Tauri store backed).
@@ -70,8 +82,14 @@ export function SettingsPanel() {
               />
             </Section>
 
+            {activeProvider === 'claude-code' ? (
+              <Section title="Claude Code permissions">
+                <ClaudeCodeModePicker />
+              </Section>
+            ) : null}
+
             <Section title="API keys">
-              {PROVIDERS.map((p) => (
+              {PROVIDERS.filter((p) => p.needsKey).map((p) => (
                 <ApiKeyField
                   key={p.id}
                   label={p.label}
@@ -122,6 +140,30 @@ function OutputStylePicker() {
         >
           <div className="font-medium">{s.label}</div>
           <div className="text-[10px] text-neutral-500">{s.hint}</div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ClaudeCodeModePicker() {
+  const mode = useSettingsStore((s) => s.claudeCodePermissionMode);
+  const setMode = useSettingsStore((s) => s.setClaudeCodePermissionMode);
+  return (
+    <div className="grid grid-cols-1 gap-1">
+      {CC_PERMISSION_MODES.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          onClick={() => void setMode(m.id)}
+          className={`rounded border px-2 py-1.5 text-left text-xs transition-colors ${
+            mode === m.id
+              ? 'border-indigo-500 bg-indigo-500/10 text-neutral-100'
+              : 'border-neutral-800 bg-neutral-900 text-neutral-400 hover:border-neutral-700'
+          }`}
+        >
+          <div className="font-medium">{m.label}</div>
+          <div className="text-[10px] text-neutral-500">{m.hint}</div>
         </button>
       ))}
     </div>

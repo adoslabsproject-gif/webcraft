@@ -11,7 +11,19 @@ import { create } from 'zustand';
 /// keychain via @napi-rs/keyring — wired through the Node sidecar — and
 /// will replace this for `apiKeys` once the sidecar is online.
 
-export type Provider = 'anthropic' | 'openai' | 'openrouter' | 'deepseek' | 'grok' | 'gemini';
+export type Provider =
+  | 'claude-code'
+  | 'anthropic'
+  | 'openai'
+  | 'openrouter'
+  | 'deepseek'
+  | 'grok'
+  | 'gemini';
+
+/// Claude Code headless permission behavior: acceptEdits auto-approves file
+/// edits but not arbitrary commands beyond the defaults; plan never touches
+/// files; bypassPermissions approves everything (dangerous, explicit opt-in).
+export type ClaudeCodePermissionMode = 'acceptEdits' | 'plan' | 'bypassPermissions';
 
 /// User-selectable response style — injected as a directive in the system
 /// prompt. Matches Claude Code CLI's `--output-style` flag.
@@ -30,6 +42,8 @@ export const OUTPUT_STYLE_DIRECTIVES: Record<OutputStyle, string> = {
 };
 
 const DEFAULT_MODELS: Record<Provider, string> = {
+  // 'default' = let the CLI pick the model configured in Claude Code.
+  'claude-code': 'default',
   anthropic: 'claude-opus-4-7',
   openai: 'gpt-5',
   openrouter: 'anthropic/claude-opus-4-7',
@@ -39,6 +53,7 @@ const DEFAULT_MODELS: Record<Provider, string> = {
 };
 
 const EMPTY_KEYS: Record<Provider, string> = {
+  'claude-code': '',
   anthropic: '',
   openai: '',
   openrouter: '',
@@ -53,6 +68,7 @@ interface SettingsState {
   model: string;
   theme: 'dark' | 'light';
   outputStyle: OutputStyle;
+  claudeCodePermissionMode: ClaudeCodePermissionMode;
   /// Token usage accumulated since app start. Reset on reload.
   tokensInput: number;
   tokensOutput: number;
@@ -63,6 +79,7 @@ interface SettingsState {
   setModel: (model: string) => Promise<void>;
   setTheme: (theme: 'dark' | 'light') => Promise<void>;
   setOutputStyle: (style: OutputStyle) => Promise<void>;
+  setClaudeCodePermissionMode: (mode: ClaudeCodePermissionMode) => Promise<void>;
   addTokens: (input: number, output: number) => void;
 }
 
@@ -80,6 +97,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   model: DEFAULT_MODELS.anthropic,
   theme: 'dark',
   outputStyle: 'default',
+  claudeCodePermissionMode: 'acceptEdits',
   tokensInput: 0,
   tokensOutput: 0,
   loaded: false,
@@ -105,7 +123,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       storedModel && storedProvider === activeProvider ? storedModel : DEFAULT_MODELS[activeProvider];
     const theme = (await store.get<'dark' | 'light'>('theme')) ?? 'dark';
     const outputStyle = (await store.get<OutputStyle>('outputStyle')) ?? 'default';
-    set({ apiKeys, activeProvider, model, theme, outputStyle, loaded: true });
+    const claudeCodePermissionMode =
+      (await store.get<ClaudeCodePermissionMode>('claudeCodePermissionMode')) ?? 'acceptEdits';
+    set({ apiKeys, activeProvider, model, theme, outputStyle, claudeCodePermissionMode, loaded: true });
   },
 
   async setApiKey(provider, key) {
@@ -139,6 +159,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ outputStyle: style });
     const store = await getStore();
     await store.set('outputStyle', style);
+  },
+
+  async setClaudeCodePermissionMode(mode) {
+    set({ claudeCodePermissionMode: mode });
+    const store = await getStore();
+    await store.set('claudeCodePermissionMode', mode);
   },
 
   addTokens(input, output) {

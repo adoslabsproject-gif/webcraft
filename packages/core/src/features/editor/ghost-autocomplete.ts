@@ -68,7 +68,10 @@ export function registerGhostAutocomplete(): monaco.IDisposable {
         if (!state.enabled) return { items: [] };
         const settings = useSettingsStore.getState();
         if (!settings.loaded) return { items: [] };
-        if (!settings.apiKeys[settings.activeProvider]) {
+        // Ghost completions need a fast single-shot API model. Claude Code
+        // runs a full agentic session per call — far too heavy for
+        // keystroke-latency completions, so it is excluded here.
+        if (settings.activeProvider === 'claude-code' || !settings.apiKeys[settings.activeProvider]) {
           return { items: [] };
         }
 

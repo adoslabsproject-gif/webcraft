@@ -1,5 +1,10 @@
 import { useCallback } from 'react';
-import { createProvider, providerSupportsTools } from '../../lib/ai/router';
+import {
+  createProvider,
+  providerExecutesOwnTools,
+  providerNeedsApiKey,
+  providerSupportsTools,
+} from '../../lib/ai/router';
 import { executeTool } from '../../lib/ai/tool-executor';
 import { TOOLS } from '../../lib/ai/tools';
 import type { ChatMessage, ContentBlock, ToolResultBlock } from '../../lib/ai/types';
@@ -57,6 +62,11 @@ You have direct, DETERMINISTIC access to the user's project via the following to
 The user's currently open file and diagnostics are injected below.
 Be concise. Show your work via tool calls, not via prose.`;
 
+/// Appended (not replacing) Claude Code's own system prompt via
+/// --append-system-prompt: CC has its own tools and rules — we only tell it
+/// where it is running and inject the live IDE context.
+const SYSTEM_PROMPT_CLAUDE_CODE = `You are running inside the WebCraft desktop IDE: the user chats with you in the IDE and watches your edits appear live in the editor, file tree and diff stream. Work as usual with your own tools. Keep prose concise — the UI shows your tool activity as cards.`;
+
 const SYSTEM_PROMPT_NO_TOOLS = `You are WebCraft, an AI assistant embedded in an IDE.
 
 ⚠ CRITICAL — YOU HAVE NO TOOL EXECUTION IN THIS CONVERSATION:
@@ -98,7 +108,11 @@ export function useChat() {
 
       const provider = createProvider({ provider: activeProvider, apiKey: apiKeys[activeProvider] });
       if (!provider) {
-        store.setError(`${activeProvider} needs an API key. Open Settings and add one.`);
+        store.setError(
+          providerNeedsApiKey(activeProvider)
+            ? `${activeProvider} needs an API key. Open Settings and add one.`
+            : `${activeProvider} is unavailable.`,
+        );
         return;
       }
 
@@ -138,9 +152,11 @@ export function useChat() {
       const editorCtx = buildEditorContext();
       const projectCtx = await buildProjectContext(projectRoot);
       const styleDirective = OUTPUT_STYLE_DIRECTIVES[outputStyle];
-      const baseSystem = providerSupportsTools(activeProvider)
-        ? SYSTEM_PROMPT_TOOLS
-        : SYSTEM_PROMPT_NO_TOOLS;
+      const baseSystem = providerExecutesOwnTools(activeProvider)
+        ? SYSTEM_PROMPT_CLAUDE_CODE
+        : providerSupportsTools(activeProvider)
+          ? SYSTEM_PROMPT_TOOLS
+          : SYSTEM_PROMPT_NO_TOOLS;
       const systemPrompt = [
         baseSystem,
         styleDirective || null,
@@ -193,7 +209,8 @@ async function runConversation(opts: {
 }) {
   const { provider, providerId, model, systemPrompt, signal } = opts;
   if (!provider) return;
-  const supportsTools = providerSupportsTools(providerId);
+  const executesOwnTools = providerExecutesOwnTools(providerId);
+  const supportsTools = providerSupportsTools(providerId) && !executesOwnTools;
   let safety = 0;
 
   while (safety++ < 12) {
@@ -211,7 +228,7 @@ async function runConversation(opts: {
     store.appendMessage(assistant);
     store.clearPendingText();
 
-    const { assistantBlocks, stopReason } = await provider.stream({
+    const { assistantBlocks, stopReason, toolResults: providerToolResults } = await provider.stream({
       model,
       system: systemPrompt,
       messages: store.messages.filter((m) => m.role !== 'system' && m.id !== assistantId),
@@ -232,6 +249,21 @@ async function runConversation(opts: {
     useChatStore.getState().setMessageContent(assistantId, assistantBlocks);
     useChatStore.getState().setMessageStreaming(assistantId, false);
     useChatStore.getState().clearPendingText();
+
+    // Providers with their own agentic loop (Claude Code) already executed
+    // everything: append their tool results for the transcript and stop —
+    // WebCraft must never re-execute those calls.
+    if (executesOwnTools) {
+      if (providerToolResults && providerToolResults.length > 0) {
+        useChatStore.getState().appendMessage({
+          id: mkId('msg'),
+          role: 'user',
+          content: providerToolResults,
+          createdAt: Date.now(),
+        });
+      }
+      return;
+    }
 
     if (!supportsTools || stopReason !== 'tool_use') return;
 
