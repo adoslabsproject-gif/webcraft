@@ -165,7 +165,10 @@ jobs:
           # On tag push: create/update a draft release with all installers attached.
           tagName: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           releaseName: ${{ startsWith(github.ref, 'refs/tags/') && format('WebCraft {0}', github.ref_name) || '' }}
-          releaseDraft: true
+          # Never draft: deleting/moving the tag flips a draft release's
+          # assets to unreachable (404 on public download links). Publishing
+          # directly keeps the URLs alive while jobs replace assets in place.
+          releaseDraft: false
           prerelease: false
 
       - name: Verify AppImage embeds the voice libraries
