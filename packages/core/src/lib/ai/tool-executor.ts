@@ -12,6 +12,7 @@ import {
   renamePath,
   writeFile,
 } from '../ipc/fs';
+import { createPosix, execPosix } from '../ipc/shell';
 import { renderUnifiedDiff } from './diff-format';
 import { runPostHook, runPreHook } from './hooks';
 import { requirePermission } from './permissions';
@@ -340,14 +341,10 @@ const HANDLERS: Record<
     // for machines without ripgrep (translates `**/*.ext` to `-name '*.ext'`).
     const findName = pattern.replace(/^.*\//, '');
     try {
-      const result = await Command.create(
-        'sh',
-        [
-          '-c',
-          `cd "${path}" && { rg --files --glob ${JSON.stringify(pattern)} 2>/dev/null || find . -type f -name ${JSON.stringify(findName)} -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/target/*' -not -path '*/dist/*' 2>/dev/null; } | head -500`,
-        ],
+      const result = await execPosix(
+        `cd "${path}" && { rg --files --glob ${JSON.stringify(pattern)} 2>/dev/null || find . -type f -name ${JSON.stringify(findName)} -not -path '*/node_modules/*' -not -path '*/.git/*' -not -path '*/target/*' -not -path '*/dist/*' 2>/dev/null; } | head -500`,
         { env },
-      ).execute();
+      );
       return ok(result.stdout || '(no matches)');
     } catch (e) {
       return err(String(e));
@@ -467,14 +464,10 @@ const HANDLERS: Record<
       const safe = pattern.replace(/'/g, "'\\''");
       const excludeDirs =
         '--exclude-dir=node_modules --exclude-dir=.git --exclude-dir=target --exclude-dir=dist --exclude-dir=build --exclude-dir=.next --exclude-dir=vendor';
-      const out = await Command.create(
-        'sh',
-        [
-          '-c',
-          `grep -RInE${ignore === 'true' ? 'i' : ''} ${ctx ? `-C ${ctx}` : ''} -m 100 ${excludeDirs} '${safe}' ${JSON.stringify(root)} 2>/dev/null | head -200`,
-        ],
+      const out = await execPosix(
+        `grep -RInE${ignore === 'true' ? 'i' : ''} ${ctx ? `-C ${ctx}` : ''} -m 100 ${excludeDirs} '${safe}' ${JSON.stringify(root)} 2>/dev/null | head -200`,
         { env },
-      ).execute();
+      );
       return ok(out.stdout.slice(0, 8000) || '(no matches)');
     }
   },
@@ -613,7 +606,7 @@ const HANDLERS: Record<
     const env = await shellEnv(cwd ?? null);
 
     if (background) {
-      const command = Command.create('sh', ['-c', cmd], { ...(cwd ? { cwd } : {}), env });
+      const command = await createPosix(cmd, { ...(cwd ? { cwd } : {}), env });
       const id = `bg_${Date.now().toString(36)}`;
       const logs: string[] = [];
       command.stdout.on('data', (line) => logs.push(line));
@@ -623,7 +616,7 @@ const HANDLERS: Record<
       return ok(`Spawned background process. process_id=${id}`);
     }
 
-    const command = Command.create('sh', ['-c', cmd], { ...(cwd ? { cwd } : {}), env });
+    const command = await createPosix(cmd, { ...(cwd ? { cwd } : {}), env });
     const result = await Promise.race([
       command.execute(),
       new Promise<never>((_, reject) =>
@@ -1060,10 +1053,7 @@ function stripHtml(s: string): string {
 async function runShell(cmd: string): Promise<{ content: string; isError: boolean }> {
   const cwd = useAppStore.getState().projectRoot ?? undefined;
   const env = await shellEnv(cwd ?? null);
-  const result = await Command.create('sh', ['-c', cmd], {
-    ...(cwd ? { cwd } : {}),
-    env,
-  }).execute();
+  const result = await execPosix(cmd, { ...(cwd ? { cwd } : {}), env });
   const combined = [result.stdout, result.stderr].filter(Boolean).join('\n');
   return result.code === 0
     ? ok(combined || '(no output)')

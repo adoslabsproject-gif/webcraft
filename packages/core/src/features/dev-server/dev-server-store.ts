@@ -1,4 +1,4 @@
-import { type Child, Command } from '@tauri-apps/plugin-shell';
+import type { Child } from '@tauri-apps/plugin-shell';
 import { create } from 'zustand';
 
 /// Dev server orchestration — spawns project runtimes (Node/Static/PHP/
@@ -63,7 +63,8 @@ export const useDevServerStore = create<DevServerState>((set, get) => ({
     };
     set((s) => ({ servers: [...s.servers, entry] }));
 
-    const cmd = Command.create('sh', ['-c', resolvedCommand], { cwd });
+    const { createPosix } = await import('../../lib/ipc/shell');
+    const cmd = await createPosix(resolvedCommand, { cwd });
     cmd.stdout.on('data', (line) => appendLog(id, line, set));
     cmd.stderr.on('data', (line) => appendLog(id, line, set));
     cmd.on('close', (data) => {

@@ -1,5 +1,5 @@
-import { Command } from '@tauri-apps/plugin-shell';
 import { shellEnv } from '../../lib/ai/shell-env';
+import { execPosix } from '../../lib/ipc/shell';
 import type { Problem } from '../../store/app-store';
 
 /// Whole-project diagnostics — real compilers and linters, monorepo-aware.
@@ -46,7 +46,7 @@ export interface ScanResult {
 
 async function sh(projectRoot: string, cmd: string): Promise<string> {
   const env = await shellEnv(projectRoot);
-  const result = await Command.create('sh', ['-c', cmd], { cwd: projectRoot, env }).execute();
+  const result = await execPosix(cmd, { cwd: projectRoot, env });
   return result.stdout;
 }
 

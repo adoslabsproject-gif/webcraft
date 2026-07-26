@@ -134,6 +134,8 @@
       "allow": [
         { "name": "sh", "cmd": "sh", "args": true },
         { "name": "open", "cmd": "open", "args": true },
+        { "name": "git-bash", "cmd": "C:\\Program Files\\Git\\bin\\bash.exe", "args": true },
+        { "name": "git-bash-x86", "cmd": "C:\\Program Files (x86)\\Git\\bin\\bash.exe", "args": true },
         { "name": "bash", "cmd": "bash", "args": true },
         { "name": "zsh", "cmd": "zsh", "args": true },
         { "name": "ls", "cmd": "ls", "args": true },

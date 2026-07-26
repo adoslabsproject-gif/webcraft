@@ -1,4 +1,5 @@
 import { Command } from '@tauri-apps/plugin-shell';
+import { isWindows } from '../ipc/shell';
 
 /// Shared PATH resolution for EVERY agent tool that spawns a process.
 ///
@@ -83,6 +84,10 @@ export function resolveUserPath(): Promise<string> {
 /// own node_modules/.bin in front so local binaries (tsc, biome, vite, …)
 /// win over global installs — exactly like a terminal inside the project.
 export async function shellEnv(projectRoot?: string | null): Promise<Record<string, string>> {
+  // Windows: GUI apps inherit the full system PATH already, and commands
+  // run inside Git Bash which brings its own /usr/bin. Overriding PATH with
+  // a unix-style string would only break resolution — pass nothing.
+  if (isWindows()) return {};
   const userPath = await resolveUserPath();
   const path = projectRoot ? dedupe(`${projectRoot}/node_modules/.bin:${userPath}`) : userPath;
   return { PATH: path };

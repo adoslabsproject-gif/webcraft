@@ -401,11 +401,11 @@ async function parsePackageJsonScripts(
           'export FORCE_COLOR=0',
           'export CI=1', // many tools fall back to plain log mode under CI
         ].join('; ');
-        const result = await Command.create(
-          'sh',
-          ['-c', `export PATH="${fullPath}"; ${verboseEnv}; ${pm} run ${name}`],
+        const { execPosix } = await import('../../lib/ipc/shell');
+        const result = await execPosix(
+          `export PATH="${fullPath}"; ${verboseEnv}; ${pm} run ${name}`,
           { cwd: pkgDir },
-        ).execute();
+        );
         const header = `\n$ cd ${pkgDir}\n$ ${pm} run ${name}\n`;
         const out = `${header}${result.stdout}\n${result.stderr}\n[exit ${result.code}]`;
         window.dispatchEvent(new CustomEvent('webcraft:run:output', { detail: out }));
@@ -508,7 +508,11 @@ async function maybeWarnPortConflict(
 }
 
 /// Returns the holder pid+command of the given port, or null if free.
+/// Windows: lsof does not exist — skip the pre-flight (the dev server
+/// itself will report a port conflict; we just lose the friendlier warning).
 async function portHolder(port: number): Promise<{ pid: number; command: string } | null> {
+  const { isWindows } = await import('../../lib/ipc/shell');
+  if (isWindows()) return null;
   try {
     const r = await Command.create('lsof', [
       '-iTCP:' + port,
@@ -539,6 +543,8 @@ async function portHolder(port: number): Promise<{ pid: number; command: string 
 /// running. We're deliberately conservative: only kill things that LOOK
 /// like leftover Vite/Webpack/Next/Tauri children.
 async function isReapableDevServer(pid: number, command: string): Promise<boolean> {
+  const { isWindows } = await import('../../lib/ipc/shell');
+  if (isWindows()) return false; // ps/kill semantics differ — never auto-reap
   const looksDevServer = /^(node|vite|webpack|next|esbuild|bun|deno)/i.test(command);
   if (!looksDevServer) return false;
   try {

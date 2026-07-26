@@ -1,6 +1,6 @@
 import { homeDir } from '@tauri-apps/api/path';
-import { Command } from '@tauri-apps/plugin-shell';
 import { fileExists } from '../ipc/fs';
+import { execPosix } from '../ipc/shell';
 import { shellEnv } from './shell-env';
 import type { ToolUseBlock } from './types';
 
@@ -67,15 +67,13 @@ export async function runPreHook(
     // Pipe JSON to the hook's stdin via /tmp file (Tauri's Command.create
     // does not expose stdin yet for execute()).
     const tmp = `/tmp/webcraft-hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
-    await Command.create('sh', [
-      '-c',
-      `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`,
-    ]).execute();
+    await execPosix(`cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`);
     // Hook scripts routinely call the user's toolchain (pnpm, biome, …) —
     // give them the same resolved PATH as the agent tools.
     const env = await shellEnv(projectRoot);
-    const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`], { env }).execute();
-    await Command.create('rm', ['-f', tmp]).execute();
+    const r = await execPosix(`cat '${tmp}' | '${path}'; code=$?; rm -f '${tmp}'; exit $code`, {
+      env,
+    });
     if ((r.code ?? 0) === 0) return { allowed: true };
     const reason = (r.stderr || r.stdout || `pre-hook exited ${r.code}`).slice(0, 1000);
     return { allowed: false, reason };
@@ -104,13 +102,11 @@ export async function runPostHook(
       result: { content: result.content, isError: result.isError },
     });
     const tmp = `/tmp/webcraft-hook-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
-    await Command.create('sh', [
-      '-c',
-      `cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`,
-    ]).execute();
+    await execPosix(`cat > '${tmp}' << 'EOF_WEBCRAFT'\n${payload}\nEOF_WEBCRAFT`);
     const env = await shellEnv(projectRoot);
-    const r = await Command.create('sh', ['-c', `cat '${tmp}' | '${path}'`], { env }).execute();
-    await Command.create('rm', ['-f', tmp]).execute();
+    const r = await execPosix(`cat '${tmp}' | '${path}'; code=$?; rm -f '${tmp}'; exit $code`, {
+      env,
+    });
     if ((r.code ?? 0) !== 0) {
       return { warning: (r.stderr || r.stdout || `post-hook exited ${r.code}`).slice(0, 500) };
     }

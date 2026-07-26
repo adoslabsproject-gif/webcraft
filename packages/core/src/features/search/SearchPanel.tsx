@@ -126,10 +126,9 @@ async function tryRipgrep(pattern: string, cwd: string): Promise<string> {
 }
 
 async function tryGrep(pattern: string, cwd: string): Promise<string> {
-  const cmd = Command.create('sh', [
-    '-c',
+  const { execPosix } = await import('../../lib/ipc/shell');
+  const out = await execPosix(
     `grep -RInE ${JSON.stringify(pattern)} --exclude-dir=node_modules --exclude-dir=.git --max-count=200 ${JSON.stringify(cwd)} 2>/dev/null | head -500`,
-  ]);
-  const out = await cmd.execute();
+  );
   return out.stdout;
 }

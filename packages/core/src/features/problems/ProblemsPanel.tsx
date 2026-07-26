@@ -13,8 +13,8 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { type Problem, useAppStore } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
-import { Command } from '@tauri-apps/plugin-shell';
 import { shellEnv } from '../../lib/ai/shell-env';
+import { execPosix } from '../../lib/ipc/shell';
 import { fileExists, writeFile } from '../../lib/ipc/fs';
 import { revealLocation } from '../editor/editor-controller';
 import { runProjectScan } from './auto-scan';
@@ -207,16 +207,10 @@ function MissingToolActions({
         const pm = (await fileExists(`${projectRoot}/pnpm-lock.yaml`))
           ? 'pnpm add -D @biomejs/biome'
           : 'npm install -D @biomejs/biome';
-        const r = await Command.create('sh', ['-c', `${pm} 2>&1 | tail -3`], {
-          cwd: projectRoot,
-          env,
-        }).execute();
+        const r = await execPosix(`${pm} 2>&1 | tail -3`, { cwd: projectRoot, env });
         if (r.code !== 0) throw new Error(r.stderr || r.stdout || `exit ${r.code}`);
       } else if (action.cmd) {
-        const r = await Command.create('sh', ['-c', `${action.cmd} 2>&1 | tail -3`], {
-          cwd: projectRoot,
-          env,
-        }).execute();
+        const r = await execPosix(`${action.cmd} 2>&1 | tail -3`, { cwd: projectRoot, env });
         if (r.code !== 0) throw new Error(r.stderr || r.stdout || `exit ${r.code}`);
       }
       await runProjectScan();
