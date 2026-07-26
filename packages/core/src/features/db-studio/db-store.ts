@@ -66,20 +66,17 @@ export interface QueryHistoryEntry {
 
 const DEFAULT_CONN_ID = 'pglite-default';
 
+/// Honesty rule: a connection appears here ONLY if a sidecar driver file
+/// exists for its kind (packages/server/src/modules/db/). Ghost entries for
+/// engines with zero backing code (mysql/mariadb/surrealdb) were removed —
+/// they were titles, not features. The 4 sidecar-backed entries stay marked
+/// unavailable until the DbManager wiring lands.
 const STATIC_CONNS: DbConnection[] = [
   { id: DEFAULT_CONN_ID, name: 'Local PostgreSQL (PGLite)', kind: 'pglite', available: true },
   { id: 'sqlite-default', name: 'Local SQLite (better-sqlite3)', kind: 'sqlite', available: false },
   { id: 'duckdb-default', name: 'Local DuckDB (analytics)', kind: 'duckdb', available: false },
   { id: 'mongo-default', name: 'Local MongoDB (memory)', kind: 'mongo', available: false },
-  { id: 'mysql-default', name: 'Local MySQL (portable)', kind: 'mysql', available: false },
-  { id: 'mariadb-default', name: 'Local MariaDB (portable)', kind: 'mariadb', available: false },
-  { id: 'redis-default', name: 'Local Redis (portable)', kind: 'redis', available: false },
-  {
-    id: 'surrealdb-default',
-    name: 'Local SurrealDB (multi-model)',
-    kind: 'surrealdb',
-    available: false,
-  },
+  { id: 'redis-default', name: 'Local Redis (in-process)', kind: 'redis', available: false },
   { id: 'libsql-default', name: 'Local LibSQL (Turso fork)', kind: 'libsql', available: false },
 ];
 

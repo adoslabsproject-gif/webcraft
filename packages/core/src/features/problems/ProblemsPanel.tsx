@@ -13,8 +13,12 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { type Problem, useAppStore } from '../../store/app-store';
 import { useSettingsStore } from '../../store/settings-store';
+import { Command } from '@tauri-apps/plugin-shell';
+import { shellEnv } from '../../lib/ai/shell-env';
+import { fileExists, writeFile } from '../../lib/ipc/fs';
 import { revealLocation } from '../editor/editor-controller';
 import { runProjectScan } from './auto-scan';
+import { mergeProblems } from './merged';
 
 /// Problems panel — diagnostics with per-issue Copy / How-to-fix / AI-fix
 /// actions and a bulk "Copy all" in the header. Messages are selectable
@@ -35,13 +39,7 @@ export function ProblemsPanel() {
   const [copiedAll, setCopiedAll] = useState(false);
   const [menu, setMenu] = useState<{ x: number; y: number; problem: Problem } | null>(null);
 
-  // Live Monaco markers (open files) + whole-project scan, deduped by
-  // position: the live marker wins because it tracks unsaved edits.
-  const liveKeys = new Set(liveProblems.map((p) => `${p.path}:${p.line}:${p.column}`));
-  const problems = [
-    ...liveProblems,
-    ...scanProblems.filter((p) => !liveKeys.has(`${p.path}:${p.line}:${p.column}`)),
-  ];
+  const problems = mergeProblems(liveProblems, scanProblems);
 
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.filter((p) => p.severity === 'warning').length;
@@ -122,8 +120,9 @@ export function ProblemsPanel() {
         </div>
       </div>
       {scanFailure ? (
-        <div className="select-text border-b border-[var(--color-warning)]/30 bg-[var(--color-warning-muted)] px-3 py-1 text-[10px] text-[var(--color-warning)]">
-          {scanFailure}
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--color-warning)]/30 bg-[var(--color-warning-muted)] px-3 py-1 text-[10px] text-[var(--color-warning)]">
+          <span className="select-text">{scanFailure}</span>
+          <MissingToolActions failure={scanFailure} projectRoot={projectRoot} />
         </div>
       ) : null}
       <ul className="flex-1 divide-y divide-[var(--color-border-subtle)] overflow-y-auto">
@@ -158,6 +157,93 @@ export function ProblemsPanel() {
         />
       ) : null}
     </div>
+  );
+}
+
+/// One-click fixes for missing scanner toolchains. NOTHING installs
+/// silently: every action is an explicit button press, runs the exact
+/// command shown in its tooltip, and re-scans when done.
+function MissingToolActions({
+  failure,
+  projectRoot,
+}: {
+  failure: string;
+  projectRoot: string | null;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const actions: Array<{ id: string; label: string; cmd?: string }> = [];
+  if (failure.includes('shellcheck not installed'))
+    actions.push({ id: 'shellcheck', label: 'Install shellcheck', cmd: 'brew install shellcheck' });
+  if (failure.includes('pyright not found'))
+    actions.push({ id: 'pyright', label: 'Install pyright', cmd: 'npm install -g pyright' });
+  if (failure.includes('tsc not found'))
+    actions.push({ id: 'tsc', label: 'Install TypeScript', cmd: 'npm install -g typescript' });
+  if (failure.includes('no biome.json or eslint config') && projectRoot)
+    actions.push({ id: 'biome', label: 'Set up biome lint for this project' });
+  if (actions.length === 0) return null;
+
+  async function run(action: { id: string; label: string; cmd?: string }) {
+    if (!projectRoot || busy) return;
+    setBusy(action.id);
+    setError(null);
+    try {
+      const env = await shellEnv(projectRoot);
+      if (action.id === 'biome') {
+        // Explicit opt-in project setup: minimal config + local dev dep.
+        await writeFile(
+          `${projectRoot}/biome.json`,
+          `${JSON.stringify(
+            {
+              $schema: 'https://biomejs.dev/schemas/2.0.0/schema.json',
+              linter: { enabled: true },
+              formatter: { enabled: false },
+            },
+            null,
+            2,
+          )}\n`,
+        );
+        const pm = (await fileExists(`${projectRoot}/pnpm-lock.yaml`))
+          ? 'pnpm add -D @biomejs/biome'
+          : 'npm install -D @biomejs/biome';
+        const r = await Command.create('sh', ['-c', `${pm} 2>&1 | tail -3`], {
+          cwd: projectRoot,
+          env,
+        }).execute();
+        if (r.code !== 0) throw new Error(r.stderr || r.stdout || `exit ${r.code}`);
+      } else if (action.cmd) {
+        const r = await Command.create('sh', ['-c', `${action.cmd} 2>&1 | tail -3`], {
+          cwd: projectRoot,
+          env,
+        }).execute();
+        if (r.code !== 0) throw new Error(r.stderr || r.stdout || `exit ${r.code}`);
+      }
+      await runProjectScan();
+    } catch (e) {
+      setError(`${action.label} failed: ${String(e instanceof Error ? e.message : e).slice(0, 200)}`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <>
+      {actions.map((a) => (
+        <button
+          key={a.id}
+          type="button"
+          disabled={busy !== null}
+          onClick={() => void run(a)}
+          title={a.cmd ?? 'Writes biome.json and adds @biomejs/biome as a dev dependency'}
+          className="flex items-center gap-1 rounded border border-[var(--color-warning)]/50 px-1.5 py-0.5 text-[10px] hover:bg-[var(--color-bg-hover)] disabled:opacity-50"
+        >
+          {busy === a.id ? <RefreshCw className="h-2.5 w-2.5 animate-spin" /> : null}
+          {busy === a.id ? 'Installing…' : a.label}
+        </button>
+      ))}
+      {error ? <span className="select-text text-[var(--color-danger)]">{error}</span> : null}
+    </>
   );
 }
 

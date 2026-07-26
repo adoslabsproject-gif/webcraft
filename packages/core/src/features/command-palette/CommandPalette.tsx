@@ -64,7 +64,7 @@ export function CommandPalette() {
       label: 'New File',
       shortcut: '⌘N',
       icon: FilePlus,
-      run: () => undefined,
+      run: () => store.getState().newUntitledFile(),
     },
     {
       id: 'save',
@@ -144,9 +144,9 @@ export function CommandPalette() {
     {
       id: 'ai-schema',
       group: 'Tools',
-      label: 'AI: Design Database Schema',
+      label: 'AI: Design Database Schema (opens DB Studio)',
       icon: Sparkles,
-      run: () => store.getState().setActivityPanel('db-studio'),
+      run: () => store.getState().openDbStudioTab(),
     },
   ];
 

@@ -151,6 +151,9 @@ class CodebaseIndex {
   /// batches skip the sidecar entirely so a missing/dead sidecar can never
   /// stretch indexing out (search degrades to grep-only mode).
   private sidecarDown = false;
+  /// True when vectors came from the hash fallback (real embedding backend
+  /// offline) — results are keyword-ish, NOT semantic, and callers must say so.
+  degradedVectors = false;
 
   async build(root: string): Promise<void> {
     if (this.inflight && this.indexedRoot === root) return this.inflight;
@@ -195,9 +198,16 @@ class CodebaseIndex {
     for (let i = 0; i < batch.length; i += BATCH_SIZE) {
       const slice = batch.slice(i, i + BATCH_SIZE);
       try {
-        const { vectors } = await sidecarPost<{ vectors: number[][] }>('/embeddings/encode', {
-          text: slice.map((c) => c.text),
-        });
+        const { vectors, model } = await sidecarPost<{ vectors: number[][]; model?: string }>(
+          '/embeddings/encode',
+          {
+            text: slice.map((c) => c.text),
+          },
+        );
+        // The sidecar degrades to deterministic hash vectors when the real
+        // embedding backend is unreachable — record it so search results
+        // can say so instead of silently returning noise-ranked hits.
+        if (model?.startsWith('fallback-hash')) this.degradedVectors = true;
         for (let j = 0; j < slice.length; j++) {
           const v = vectors[j];
           if (v) this.chunks.push({ ...slice[j]!, vector: v });

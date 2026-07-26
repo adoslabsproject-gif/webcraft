@@ -53,7 +53,7 @@ It touches your **real filesystem, real language servers, real git repo**.
 
 ## ✦ Highlights
 
-> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **real LSP** &nbsp;·&nbsp; 🔎 **semantic `@codebase` search** &nbsp;·&nbsp; 🗄️ **5-engine DB Studio** &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🎙️ **local whisper dictation** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🗺️ **plan mode + task tracker** &nbsp;·&nbsp; 🔌 **MCP + skills**
+> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **LSP** (via installed language servers) &nbsp;·&nbsp; 🔎 **`@codebase` search** &nbsp;·&nbsp; 🩺 **9-engine auto problem scan** &nbsp;·&nbsp; 🗄️ **DB Studio** (PGLite live, 4 engines in wiring) &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🎙️ **local whisper dictation** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🔌 **MCP**
 
 ---
 
@@ -96,8 +96,8 @@ flowchart LR
 | Group | Tools |
 |------|------|
 | **📁 Files** | `read_file` · `write_file` · `edit_file` · `multi_edit` · `apply_patch` · `create_dir` · `move_file` · `copy_file` · `delete_file` · `get_file_stat` · `list_directory` · `glob` · `grep` · `find_files` · `notebook_edit` |
-| **🧭 Code intelligence (LSP)** | `goto_definition` · `find_references` · `get_symbols` · `rename_symbol` · `format_file` · `get_imports` |
-| **🩺 Diagnostics & run** | `get_diagnostics` · `lint_file` · `type_check` · `run_test` · `run_build` · `run_command` |
+| **🧭 Code intelligence (LSP)** | `goto_definition` · `find_references` · `get_symbols` · `rename_symbol` · `get_imports` |
+| **🩺 Diagnostics & run** | `get_diagnostics` · `lint_file` · `type_check` · `format_file` · `run_test` · `run_build` · `run_command` |
 | **🔎 Semantic** | `semantic_search` (`@codebase`) |
 | **🌿 Git** | `git_status` · `git_diff` · `git_log` · `git_show` · `git_blame` · `git_branches` · `git_commit` |
 | **🗄️ Database** | `db_query` · `db_schema` · `db_table_data` |
@@ -173,7 +173,7 @@ pnpm build               # build all packages + desktop bundle
 
 ## ✦ Status
 
-<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 6 LLM providers, semantic search, DB Studio UI, dev-servers, diff stream, git, offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: DB driver wiring, LSP-backed refactoring tools, OS-keychain secrets, screenshots. Issues and PRs welcome.</samp>
+<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 6 LLM providers, semantic search, DB Studio UI, dev-servers, diff stream, git, offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: DB driver wiring (PGLite works today, sqlite/duckdb/libsql/mongo next), OS-keychain secrets, Windows port of the shell-based tools (dev-servers, project scan — POSIX → PowerShell), bundling Node for the sidecar. Issues and PRs welcome.</samp>
 
 <div align="center">
 

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { codebaseIndex, type IndexProgress } from '../features/embeddings/codebase-index';
+import { mergeProblems } from '../features/problems/merged';
 import { useAppStore } from '../store/app-store';
 import { useSettingsStore } from '../store/settings-store';
 
@@ -24,7 +25,9 @@ function fmtTokens(n: number): string {
 /// "sidecar offline" line for a sidecar that isn't even spawned yet.
 export function StatusBar() {
   const projectRoot = useAppStore((s) => s.projectRoot);
-  const problems = useAppStore((s) => s.problems);
+  const liveProblems = useAppStore((s) => s.problems);
+  const scanProblems = useAppStore((s) => s.scanProblems);
+  const problems = mergeProblems(liveProblems, scanProblems);
   const tabCount = useAppStore((s) => s.editorTabs.length);
   const activeProvider = useSettingsStore((s) => s.activeProvider);
   const model = useSettingsStore((s) => s.model);

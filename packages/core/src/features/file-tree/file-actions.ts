@@ -145,10 +145,14 @@ export async function handleFileAction(
       return;
     case 'reveal-finder': {
       try {
+        // plugin-shell open(): default file manager on every platform
+        // (Finder / Explorer / xdg-open) — the previous Command('open')
+        // was macOS-only AND blocked by the shell allowlist.
         const target = node.isDirectory ? node.id : dir;
-        await Command.create('open', [target]).execute();
+        const { open: shellOpen } = await import('@tauri-apps/plugin-shell');
+        await shellOpen(target);
       } catch (e) {
-        await alert('Could not open Finder', e instanceof Error ? e.message : String(e));
+        await alert('Could not open file manager', e instanceof Error ? e.message : String(e));
       }
       return;
     }
@@ -183,7 +187,8 @@ export async function handleFileAction(
     }
     case 'open-in-explorer': {
       try {
-        await Command.create('open', [node.id]).execute();
+        const { open: shellOpen } = await import('@tauri-apps/plugin-shell');
+        await shellOpen(node.id);
       } catch (e) {
         await alert('Could not open', e instanceof Error ? e.message : String(e));
       }

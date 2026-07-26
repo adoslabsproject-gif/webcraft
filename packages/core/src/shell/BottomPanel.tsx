@@ -2,6 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { AlertCircle, Bot, ChevronDown } from 'lucide-react';
 import { DiffStreamView } from '../features/diff-viewer/DiffStreamView';
 import { OutputPanel } from '../features/output/OutputPanel';
+import { mergeProblems } from '../features/problems/merged';
 import { ProblemsPanel } from '../features/problems/ProblemsPanel';
 import { SubagentPanel } from '../features/subagent/SubagentPanel';
 import { TerminalPanel } from '../features/terminal/TerminalPanel';
@@ -15,7 +16,9 @@ export function BottomPanel() {
   const setTab = useAppStore((s) => s.setBottomTab);
   const open = useAppStore((s) => s.bottomPanelOpen);
   const toggle = useAppStore((s) => s.toggleBottomPanel);
-  const problems = useAppStore((s) => s.problems);
+  const liveProblems = useAppStore((s) => s.problems);
+  const scanProblems = useAppStore((s) => s.scanProblems);
+  const problems = mergeProblems(liveProblems, scanProblems);
   const errorCount = problems.filter((p) => p.severity === 'error').length;
   const warningCount = problems.filter((p) => p.severity === 'warning').length;
   const subagentRunning = useSubagentStore(

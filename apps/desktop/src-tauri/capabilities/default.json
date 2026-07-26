@@ -133,6 +133,7 @@
       "identifier": "shell:allow-execute",
       "allow": [
         { "name": "sh", "cmd": "sh", "args": true },
+        { "name": "open", "cmd": "open", "args": true },
         { "name": "bash", "cmd": "bash", "args": true },
         { "name": "zsh", "cmd": "zsh", "args": true },
         { "name": "ls", "cmd": "ls", "args": true },

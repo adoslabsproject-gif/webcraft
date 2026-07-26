@@ -499,7 +499,12 @@ const HANDLERS: Record<
           `[${i + 1}] ${(h.score * 100).toFixed(1)}%  ${h.path}:${h.startLine}-${h.endLine}\n${h.text.slice(0, 280)}${h.text.length > 280 ? '…' : ''}`,
       )
       .join('\n\n');
-    return ok(formatted);
+    // Honesty over polish: hash-fallback vectors rank by token overlap, not
+    // meaning — the caller must know before trusting the ordering.
+    const caveat = codebaseIndex.degradedVectors
+      ? '⚠ embedding backend offline — results ranked by keyword similarity (hash fallback), NOT true semantics. Prefer grep for precision.\n\n'
+      : '';
+    return ok(caveat + formatted);
   },
 
   find_references: async (c) => {

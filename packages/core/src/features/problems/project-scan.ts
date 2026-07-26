@@ -151,7 +151,7 @@ async function scanLint(projectRoot: string, problems: Problem[], notes: string[
   if (hasBiome) {
     const output = await sh(
       projectRoot,
-      'pnpm exec biome check --reporter=github . 2>&1 | head -800 || true',
+      '(pnpm exec biome check --reporter=github . 2>/dev/null || biome check --reporter=github . 2>&1) | head -800 || true',
     ).catch(() => '');
     let matched = false;
     for (const raw of output.split('\n')) {

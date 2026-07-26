@@ -78,7 +78,15 @@ fn locate_node() -> Option<String> {
         let nvm = std::path::PathBuf::from(home).join(".nvm/versions/node");
         if let Ok(entries) = std::fs::read_dir(&nvm) {
             let mut versions: Vec<_> = entries.flatten().collect();
-            versions.sort_by_key(|e| e.file_name());
+            // Numeric semver sort — lexicographic ordering picks v9 over
+            // v10 and would launch an ancient Node.
+            versions.sort_by_key(|e| {
+                let name = e.file_name().to_string_lossy().into_owned();
+                name.trim_start_matches('v')
+                    .split('.')
+                    .map(|p| p.parse::<u32>().unwrap_or(0))
+                    .collect::<Vec<u32>>()
+            });
             if let Some(last) = versions.last() {
                 let bin = last.path().join("bin/node");
                 if bin.exists() {
