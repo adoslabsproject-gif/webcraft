@@ -1,0 +1,45 @@
+# CI gate — every push/PR must typecheck clean and pass the unit tests.
+# Fast (< 2 min): no Rust build, no bundling — that's the release workflow.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck (all packages)
+        run: |
+          set -e
+          for p in packages/server packages/core packages/shared apps/desktop; do
+            echo "== $p =="
+            (cd "$p" && pnpm tsc -p tsconfig.json --noEmit)
+          done
+
+      - name: Unit tests
+        run: |
+          (cd packages/core && pnpm vitest run)
+          (cd packages/server && pnpm vitest run --passWithNoTests)
+
+      - name: Lint (biome — informational for now)
+        run: pnpm exec biome check . || true
