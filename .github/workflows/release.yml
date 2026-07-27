@@ -175,6 +175,18 @@ jobs:
           releaseDraft: false
           prerelease: false
 
+      - name: Debug linuxdeploy on failure (real error, not tauri's wrapper)
+        if: failure() && matrix.platform == 'ubuntu-22.04'
+        run: |
+          APPDIR=$(find apps/desktop/src-tauri/target/release/bundle/appimage -maxdepth 1 -name '*.AppDir' -o -maxdepth 1 -name 'WebCraft.AppDir' 2>/dev/null | head -1)
+          echo "AppDir: $APPDIR"; ls "$APPDIR" 2>/dev/null || true
+          LD=$(find ~/.cache -name 'linuxdeploy-x86_64.AppImage' 2>/dev/null | head -1)
+          echo "linuxdeploy: $LD"
+          if [ -n "$APPDIR" ] && [ -n "$LD" ]; then
+            chmod +x "$LD"
+            NO_STRIP=true OUTPUT=debug.AppImage "$LD" --appdir "$APPDIR" --output appimage -v1 2>&1 | tail -80 || true
+          fi
+
       - name: Verify AppImage embeds the voice libraries
         if: matrix.platform == 'ubuntu-22.04'
         run: |

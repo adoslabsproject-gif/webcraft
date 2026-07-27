@@ -52,6 +52,57 @@ function pruneSymlinks(dir) {
 pruneSymlinks(target);
 if (pruned > 0) console.log(`deploy-sidecar: pruned ${pruned} symlinks`);
 
+// Foreign-platform prebuilts (e.g. @libsql/linux-x64-musl on a gnu build,
+// darwin dirs on Windows) must go: linuxdeploy runs ldd over every ELF in
+// the AppDir and aborts on incompatible binaries — and they are dead
+// weight on every platform anyway.
+const triple = process.env.TAURI_ENV_TARGET_TRIPLE ?? '';
+const os = triple.includes('darwin')
+  ? 'darwin'
+  : triple.includes('windows')
+    ? 'win32'
+    : triple.includes('linux')
+      ? 'linux'
+      : process.platform;
+const cpu = triple.startsWith('aarch64') || (!triple && process.arch === 'arm64') ? 'arm64' : 'x64';
+const OS_TOKENS = ['darwin', 'linux', 'win32', 'windows', 'android', 'freebsd', 'ios'];
+const CPU_TOKENS = ['arm64', 'aarch64', 'x64', 'x86_64', 'ia32', 'armv7'];
+function isForeignPlatformDir(name) {
+  const lower = name.toLowerCase();
+  const mentionsOs = OS_TOKENS.filter((t) => lower.includes(t));
+  const mentionsCpu = CPU_TOKENS.filter((t) => lower.includes(t));
+  if (mentionsOs.length === 0 && mentionsCpu.length === 0 && !lower.includes('musl')) return false;
+  const osOk =
+    mentionsOs.length === 0 || mentionsOs.some((t) => t === os || (os === 'win32' && t === 'windows'));
+  const cpuOk =
+    mentionsCpu.length === 0 ||
+    mentionsCpu.some((t) => (cpu === 'arm64' ? t === 'arm64' || t === 'aarch64' : t === 'x64' || t === 'x86_64'));
+  const libcOk = os !== 'linux' ? !lower.includes('musl') : !lower.includes('musl'); // we always build gnu
+  return !(osOk && cpuOk && libcOk);
+}
+let prunedForeign = 0;
+function pruneForeign(dir, depth) {
+  if (depth > 4) return;
+  let entries;
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    const full = join(dir, e.name);
+    if (isForeignPlatformDir(e.name)) {
+      rmSync(full, { recursive: true, force: true });
+      prunedForeign++;
+    } else {
+      pruneForeign(full, depth + 1);
+    }
+  }
+}
+pruneForeign(join(target, 'node_modules'), 0);
+console.log(`deploy-sidecar: pruned ${prunedForeign} foreign-platform dirs (target ${os}-${cpu})`);
+
 const entry = join(target, 'dist', 'sidecar.mjs');
 if (!existsSync(entry)) {
   console.error(`deploy-sidecar: ${entry} missing — run the server build first`);
