@@ -43,7 +43,8 @@ jobs:
             target: x86_64-unknown-linux-gnu
             # AppImage only: it embeds the sherpa/onnxruntime .so files via
             # linuxdeploy; deb/rpm would ship without them → broken voice.
-            args: '--bundles appimage'
+            # --verbose surfaces linuxdeploy's own output on failure.
+            args: '--bundles appimage --verbose'
 
     runs-on: ${{ matrix.platform }}
 
