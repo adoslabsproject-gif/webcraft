@@ -49,6 +49,9 @@ class LspSession extends EventEmitter {
   private nextId = 1;
   private initialized = false;
   private capabilities: unknown = null;
+  /// Latest publishDiagnostics per document URI — the renderer polls these
+  /// to paint LSP squiggles in Monaco.
+  readonly diagnostics = new Map<string, unknown[]>();
 
   constructor(
     spec: LspServerSpec,
@@ -102,6 +105,10 @@ class LspSession extends EventEmitter {
           if (msg.error) p.reject(new Error(msg.error.message ?? 'LSP error'));
           else p.resolve(msg.result);
         } else if (msg.method) {
+          if (msg.method === 'textDocument/publishDiagnostics') {
+            const p = msg.params as { uri?: string; diagnostics?: unknown[] };
+            if (p?.uri) this.diagnostics.set(p.uri, p.diagnostics ?? []);
+          }
           this.emit('notification', msg.method, msg.params);
         }
       } catch (e) {

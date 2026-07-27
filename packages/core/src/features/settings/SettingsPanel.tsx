@@ -109,6 +109,10 @@ export function SettingsPanel() {
               <MemorySettings />
             </Section>
 
+            <Section title="Editor">
+              <FormatOnSaveToggle />
+            </Section>
+
             <Section title="Output style">
               <OutputStylePicker />
             </Section>
@@ -152,6 +156,23 @@ function OutputStylePicker() {
         </button>
       ))}
     </div>
+  );
+}
+
+function FormatOnSaveToggle() {
+  const on = useSettingsStore((s) => s.formatOnSave);
+  const setOn = useSettingsStore((s) => s.setFormatOnSave);
+  return (
+    <label className="flex cursor-pointer items-center gap-2 text-xs text-neutral-300">
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(e) => void setOn(e.target.checked)}
+        className="h-3.5 w-3.5 accent-indigo-500"
+      />
+      Format on save
+      <span className="text-[10px] text-neutral-500">(LSP formatter on ⌘S)</span>
+    </label>
   );
 }
 

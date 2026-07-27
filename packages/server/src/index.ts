@@ -196,6 +196,13 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { result });
     }
 
+    if (req.method === 'POST' && req.url === '/lsp/diagnostics') {
+      const body = await readJson<{ language: string; rootUri: string; uri: string }>(req);
+      const lsp = await import('./modules/lsp/host');
+      const session = await lsp.getSession(body.language, body.rootUri);
+      return send(res, 200, { diagnostics: session.diagnostics.get(body.uri) ?? [] });
+    }
+
     if (req.method === 'POST' && req.url === '/lsp/notify') {
       const body = await readJson<{
         language: string;

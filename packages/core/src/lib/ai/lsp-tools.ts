@@ -166,7 +166,12 @@ export async function lspReferences(path: string, line: number, column: number):
 }
 
 /// Apply a WorkspaceEdit to disk: per file, sort edits bottom-up so earlier
-/// offsets stay valid, splice by line/character, write back.
+/// offsets stay valid, splice by line/character, write back. Also used by
+/// the editor's F2 rename for files without an open Monaco model.
+export async function applyWorkspaceEditToDisk(edit: WorkspaceEdit): Promise<string[]> {
+  return applyWorkspaceEdit(edit);
+}
+
 async function applyWorkspaceEdit(edit: WorkspaceEdit): Promise<string[]> {
   const perFile = new Map<string, TextEdit[]>();
   if (edit.changes) {

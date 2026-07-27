@@ -70,6 +70,8 @@ interface SettingsState {
   theme: 'dark' | 'light';
   outputStyle: OutputStyle;
   claudeCodePermissionMode: ClaudeCodePermissionMode;
+  /// Run the LSP document formatter on ⌘S before writing to disk.
+  formatOnSave: boolean;
   /// Token usage accumulated since app start. Reset on reload.
   tokensInput: number;
   tokensOutput: number;
@@ -81,6 +83,7 @@ interface SettingsState {
   setTheme: (theme: 'dark' | 'light') => Promise<void>;
   setOutputStyle: (style: OutputStyle) => Promise<void>;
   setClaudeCodePermissionMode: (mode: ClaudeCodePermissionMode) => Promise<void>;
+  setFormatOnSave: (on: boolean) => Promise<void>;
   addTokens: (input: number, output: number) => void;
 }
 
@@ -99,6 +102,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   theme: 'dark',
   outputStyle: 'default',
   claudeCodePermissionMode: 'acceptEdits',
+  formatOnSave: false,
   tokensInput: 0,
   tokensOutput: 0,
   loaded: false,
@@ -148,6 +152,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const outputStyle = (await store.get<OutputStyle>('outputStyle')) ?? 'default';
     const claudeCodePermissionMode =
       (await store.get<ClaudeCodePermissionMode>('claudeCodePermissionMode')) ?? 'acceptEdits';
+    const formatOnSave = (await store.get<boolean>('formatOnSave')) ?? false;
     set({
       apiKeys,
       activeProvider,
@@ -155,6 +160,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       theme,
       outputStyle,
       claudeCodePermissionMode,
+      formatOnSave,
       loaded: true,
     });
   },
@@ -200,6 +206,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ claudeCodePermissionMode: mode });
     const store = await getStore();
     await store.set('claudeCodePermissionMode', mode);
+  },
+
+  async setFormatOnSave(on) {
+    set({ formatOnSave: on });
+    const store = await getStore();
+    await store.set('formatOnSave', on);
   },
 
   addTokens(input, output) {

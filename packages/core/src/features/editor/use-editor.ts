@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { languageForPath, pickSaveFile, readFile, writeFile } from '../../lib/ipc/fs';
 import { useAppStore } from '../../store/app-store';
+import { useSettingsStore } from '../../store/settings-store';
 import { isLikelyBinary, isUtf8Error } from './binary-detect';
 
 /// Editor hook: loads file content when the active tab changes, exposes a
@@ -115,6 +116,22 @@ export function useEditor() {
 
   const save = useCallback(async () => {
     if (!active || kind === 'binary') return;
+    // Format-on-save (Settings toggle): run the LSP formatter through
+    // Monaco first, then write WHAT THE FORMATTER PRODUCED — the `content`
+    // closure value is stale after the format edits the model.
+    let textToSave = content;
+    if (useSettingsStore.getState().formatOnSave) {
+      const { getEditor } = await import('./editor-controller');
+      const action = getEditor()?.getAction('editor.action.formatDocument');
+      if (action) {
+        await action.run().catch(() => {});
+        const formatted = getEditor()?.getModel()?.getValue();
+        if (typeof formatted === 'string') {
+          textToSave = formatted;
+          setContent(formatted);
+        }
+      }
+    }
     // Untitled buffer: prompt for a real path on first save, then promote the
     // tab (rebind id + path + label so it behaves like any other file tab).
     if (active.path.startsWith('webcraft://untitled-')) {
@@ -125,7 +142,7 @@ export function useEditor() {
           : { defaultPath: `${active.label}.txt` }),
       });
       if (!targetPath) return;
-      await writeFile(targetPath, content);
+      await writeFile(targetPath, textToSave);
       const newLabel = targetPath.split('/').pop() ?? active.label;
       const updated = store.editorTabs.map((t) =>
         t.id === active.id
@@ -133,12 +150,12 @@ export function useEditor() {
           : t,
       );
       useAppStore.setState({ editorTabs: updated, activeEditorTabId: targetPath });
-      setOriginalContent(content);
+      setOriginalContent(textToSave);
       setLanguage(languageForPath(targetPath));
       return;
     }
-    await writeFile(active.path, content);
-    setOriginalContent(content);
+    await writeFile(active.path, textToSave);
+    setOriginalContent(textToSave);
     const store = useAppStore.getState();
     const updated = store.editorTabs.map((t) => (t.id === active.id ? { ...t, dirty: false } : t));
     useAppStore.setState({ editorTabs: updated });

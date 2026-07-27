@@ -263,7 +263,137 @@ export function registerLspProviders(): monaco.IDisposable[] {
     } as monaco.languages.CompletionItemProvider),
   );
 
-  // Wire content changes to keep the server's mirror in sync.
+  // Signature help (parameter hints while typing a call)
+  disposables.push(
+    monaco.languages.registerSignatureHelpProvider({ scheme: 'file' }, {
+      signatureHelpTriggerCharacters: ['(', ','],
+      signatureHelpRetriggerCharacters: [')'],
+      async provideSignatureHelp(model, position) {
+        const language = model.getLanguageId();
+        if (!(await ensureSupportedLanguage(language))) return null;
+        await didOpen(model);
+        const res = (await lspRequest(language, 'textDocument/signatureHelp', {
+          textDocument: { uri: pathToUri(model.uri.path) },
+          position: lspPosFromMonaco(position),
+        })) as {
+          signatures?: Array<{
+            label: string;
+            documentation?: string | { value: string };
+            parameters?: Array<{ label: string | [number, number] }>;
+          }>;
+          activeSignature?: number;
+          activeParameter?: number;
+        } | null;
+        if (!res?.signatures?.length) return null;
+        return {
+          value: {
+            signatures: res.signatures.map((s) => ({
+              label: s.label,
+              documentation:
+                typeof s.documentation === 'object' ? s.documentation.value : s.documentation,
+              parameters: (s.parameters ?? []).map((p) => ({ label: p.label })),
+            })),
+            activeSignature: res.activeSignature ?? 0,
+            activeParameter: res.activeParameter ?? 0,
+          },
+          dispose() {},
+        };
+      },
+    } as monaco.languages.SignatureHelpProvider),
+  );
+
+  // Code actions (quick-fix lightbulb)
+  disposables.push(
+    monaco.languages.registerCodeActionProvider({ scheme: 'file' }, {
+      async provideCodeActions(model, range, context) {
+        const language = model.getLanguageId();
+        if (!(await ensureSupportedLanguage(language))) return null;
+        await didOpen(model);
+        const uri = pathToUri(model.uri.path);
+        const res = (await lspRequest(language, 'textDocument/codeAction', {
+          textDocument: { uri },
+          range: {
+            start: { line: range.startLineNumber - 1, character: range.startColumn - 1 },
+            end: { line: range.endLineNumber - 1, character: range.endColumn - 1 },
+          },
+          context: {
+            diagnostics: context.markers.map((mk) => ({
+              range: {
+                start: { line: mk.startLineNumber - 1, character: mk.startColumn - 1 },
+                end: { line: mk.endLineNumber - 1, character: mk.endColumn - 1 },
+              },
+              message: mk.message,
+              severity: mk.severity === monaco.MarkerSeverity.Error ? 1 : 2,
+            })),
+          },
+        })) as Array<{
+          title: string;
+          kind?: string;
+          isPreferred?: boolean;
+          edit?: LspWorkspaceEdit;
+        }> | null;
+        if (!res?.length) return null;
+        const actions: monaco.languages.CodeAction[] = res
+          .filter((a) => a.edit)
+          .map((a) => ({
+            title: a.title,
+            kind: a.kind ?? 'quickfix',
+            isPreferred: a.isPreferred ?? false,
+            edit: monacoWorkspaceEdit(a.edit!),
+            diagnostics: [],
+          }));
+        return { actions, dispose() {} };
+      },
+    } as monaco.languages.CodeActionProvider),
+  );
+
+  // Rename (F2) — current file edits go through Monaco; edits in files not
+  // open in the editor are applied straight to disk.
+  disposables.push(
+    monaco.languages.registerRenameProvider({ scheme: 'file' }, {
+      async provideRenameEdits(model, position, newName) {
+        const language = model.getLanguageId();
+        if (!(await ensureSupportedLanguage(language))) return null;
+        await didOpen(model);
+        const uri = pathToUri(model.uri.path);
+        const res = (await lspRequest(language, 'textDocument/rename', {
+          textDocument: { uri },
+          position: lspPosFromMonaco(position),
+          newName,
+        })) as LspWorkspaceEdit | null;
+        if (!res) return null;
+        const { current, foreign } = splitWorkspaceEdit(res, uri);
+        if (foreign.changes && Object.keys(foreign.changes).length > 0) {
+          const { applyWorkspaceEditToDisk } = await import('../../lib/ai/lsp-tools');
+          void applyWorkspaceEditToDisk(foreign).then(() => {
+            useAppStore.getState().notifyFsChange();
+          });
+        }
+        return monacoWorkspaceEdit(current);
+      },
+    } as monaco.languages.RenameProvider),
+  );
+
+  // Document formatting (⌥⇧F / format-on-save)
+  disposables.push(
+    monaco.languages.registerDocumentFormattingEditProvider({ scheme: 'file' }, {
+      async provideDocumentFormattingEdits(model, options) {
+        const language = model.getLanguageId();
+        if (!(await ensureSupportedLanguage(language))) return null;
+        await didOpen(model);
+        const res = (await lspRequest(language, 'textDocument/formatting', {
+          textDocument: { uri: pathToUri(model.uri.path) },
+          options: { tabSize: options.tabSize, insertSpaces: options.insertSpaces },
+        })) as Array<{ range: LspRange; newText: string }> | null;
+        if (!res?.length) return null;
+        return res.map((e) => ({ range: monacoRangeFromLsp(e.range), text: e.newText }));
+      },
+    } as monaco.languages.DocumentFormattingEditProvider),
+  );
+
+  // Wire content changes to keep the server's mirror in sync + poll the
+  // server's publishDiagnostics into Monaco markers (owner 'lsp'), which
+  // flow into the Problems tab through the marker pipeline.
   disposables.push(
     monaco.editor.onDidCreateModel((model) => {
       void didOpen(model);
@@ -271,8 +401,79 @@ export function registerLspProviders(): monaco.IDisposable[] {
       disposables.push(sub);
     }),
   );
+  const diagTimer = setInterval(() => void pollDiagnostics(), 1500);
+  disposables.push({ dispose: () => clearInterval(diagTimer) });
 
   return disposables;
+}
+
+interface LspWorkspaceEdit {
+  changes?: Record<string, Array<{ range: LspRange; newText: string }>>;
+}
+
+function splitWorkspaceEdit(
+  edit: LspWorkspaceEdit,
+  currentUri: string,
+): { current: LspWorkspaceEdit; foreign: LspWorkspaceEdit } {
+  const current: LspWorkspaceEdit = { changes: {} };
+  const foreign: LspWorkspaceEdit = { changes: {} };
+  for (const [uri, edits] of Object.entries(edit.changes ?? {})) {
+    // Edits for files with an OPEN Monaco model go through Monaco (undo
+    // stack, dirty state); everything else is written to disk directly.
+    const hasModel = monaco.editor.getModels().some((m) => pathToUri(m.uri.path) === uri);
+    if (uri === currentUri || hasModel) current.changes![uri] = edits;
+    else foreign.changes![uri] = edits;
+  }
+  return { current, foreign };
+}
+
+function monacoWorkspaceEdit(edit: LspWorkspaceEdit): monaco.languages.WorkspaceEdit {
+  const edits: monaco.languages.IWorkspaceTextEdit[] = [];
+  for (const [uri, textEdits] of Object.entries(edit.changes ?? {})) {
+    for (const e of textEdits) {
+      edits.push({
+        resource: monaco.Uri.parse(uri),
+        versionId: undefined,
+        textEdit: { range: monacoRangeFromLsp(e.range), text: e.newText },
+      });
+    }
+  }
+  return { edits };
+}
+
+const LSP_SEVERITY: Record<number, monaco.MarkerSeverity> = {
+  1: monaco.MarkerSeverity.Error,
+  2: monaco.MarkerSeverity.Warning,
+  3: monaco.MarkerSeverity.Info,
+  4: monaco.MarkerSeverity.Hint,
+};
+
+async function pollDiagnostics(): Promise<void> {
+  const rootUri = projectRootUri();
+  if (!rootUri) return;
+  for (const model of monaco.editor.getModels()) {
+    if (model.uri.scheme !== 'file') continue;
+    const language = model.getLanguageId();
+    if (!SUPPORTED.has(language)) continue;
+    const uri = pathToUri(model.uri.path);
+    if (!openedDocs.has(uri)) continue;
+    try {
+      const { sidecarPost } = await import('../../lib/ipc/sidecar');
+      const { diagnostics } = await sidecarPost<{
+        diagnostics: Array<{ range: LspRange; message: string; severity?: number; code?: unknown }>;
+      }>('/lsp/diagnostics', { language, rootUri, uri });
+      const markers: monaco.editor.IMarkerData[] = diagnostics.map((d) => ({
+        ...monacoRangeFromLsp(d.range),
+        message: d.message,
+        severity: LSP_SEVERITY[d.severity ?? 1] ?? monaco.MarkerSeverity.Error,
+        ...(d.code != null ? { code: String(d.code) } : {}),
+      }));
+      diagsCache.set(uri, markers);
+      monaco.editor.setModelMarkers(model, 'lsp', markers);
+    } catch {
+      /* sidecar down — keep whatever markers exist */
+    }
+  }
 }
 
 export function getCachedDiagnostics(path: string): monaco.editor.IMarkerData[] {
