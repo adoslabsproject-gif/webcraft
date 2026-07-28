@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@duckdb/node-api": "1.5.3-r.1",
+    "@huggingface/transformers": "4.2.0",
     "@libsql/client": "0.17.3",
     "@webcraft/shared": "workspace:*",
     "better-sqlite3": "12.10.0",

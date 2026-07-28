@@ -127,8 +127,15 @@ const server = createServer(async (req, res) => {
     if (req.method === 'POST' && req.url === '/embeddings/encode') {
       const body = await readJson<{ text: string | string[]; model?: string }>(req);
       const texts = Array.isArray(body.text) ? body.text : [body.text];
-      // Try NHA embedding endpoint first; fall back to deterministic
-      // hash-based vector so downstream code keeps flowing even offline.
+      // Chain: LOCAL ONNX model (real semantics, offline, private) →
+      // NHA proxy → deterministic hash (labeled so callers degrade honestly).
+      try {
+        const local = await import('./modules/rag/local-embedder');
+        const vectors = await local.encodeLocal(texts);
+        return send(res, 200, { vectors, model: local.localModelId() });
+      } catch {
+        /* model unavailable (first download blocked, platform issue) */
+      }
       const remote = await tryNhaEmbeddings(texts, body.model);
       if (remote) {
         return send(res, 200, { vectors: remote, model: body.model ?? 'nha-embedding' });
