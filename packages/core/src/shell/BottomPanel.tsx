@@ -2,6 +2,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { AlertCircle, Bot, ChevronDown } from 'lucide-react';
 import { DiffStreamView } from '../features/diff-viewer/DiffStreamView';
 import { OutputPanel } from '../features/output/OutputPanel';
+import { DebugPanel } from '../features/debugger/DebugPanel';
 import { mergeProblems } from '../features/problems/merged';
 import { ProblemsPanel } from '../features/problems/ProblemsPanel';
 import { SubagentPanel } from '../features/subagent/SubagentPanel';
@@ -46,6 +47,7 @@ export function BottomPanel() {
                   badge: errorCount + warningCount,
                 },
                 { id: 'diff' as BottomTab, label: 'Diff' },
+                { id: 'debug' as BottomTab, label: 'Debug' },
                 { id: 'output' as BottomTab, label: 'Output' },
                 { id: 'subagents' as BottomTab, label: 'Subagents', badge: subagentTotal },
               ] as const
@@ -91,6 +93,9 @@ export function BottomPanel() {
         </Tabs.Content>
         <Tabs.Content value="diff" className="min-h-0 flex-1 outline-none">
           <DiffStreamView />
+        </Tabs.Content>
+        <Tabs.Content value="debug" className="min-h-0 flex-1 outline-none">
+          <DebugPanel />
         </Tabs.Content>
         <Tabs.Content value="output" className="min-h-0 flex-1 outline-none">
           <OutputPanel />

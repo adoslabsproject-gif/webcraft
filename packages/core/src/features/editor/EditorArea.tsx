@@ -8,6 +8,7 @@ import { DevServerView } from '../dev-server/DevServerView';
 import { RunButton } from '../run/RunButton';
 import { ToolLibraryView } from '../tool-library/ToolLibraryView';
 import { EditorTabs } from './EditorTabs';
+import { wireBreakpoints } from '../debugger/editor-breakpoints';
 import { setEditor } from './editor-controller';
 import { InlineEditPrompt } from './InlineEditPrompt';
 import { registerInlineEditAction } from './inline-edit';
@@ -82,9 +83,11 @@ export function EditorArea() {
             editorRef.current = editor;
             setEditor(editor);
             registerInlineEditAction(editor, () => setInlinePromptOpen(true));
+            wireBreakpoints(editor);
           }}
           options={{
             minimap: { enabled: true },
+            glyphMargin: true,
             fontSize: 13,
             fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
             scrollBeyondLastLine: false,

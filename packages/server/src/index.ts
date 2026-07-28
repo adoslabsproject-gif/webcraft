@@ -99,6 +99,48 @@ const server = createServer(async (req, res) => {
       return send(res, 200, { tables });
     }
 
+    // ── Debugger (DAP / js-debug) ─────────────────────────────────────
+    if (req.method === 'POST' && req.url === '/dap/start') {
+      const body = await readJson<{ program: string; cwd: string; args?: string[] }>(req);
+      const { dapSession } = await import('./modules/dap/host');
+      try {
+        await dapSession.start(body.program, body.cwd, body.args ?? []);
+        return send(res, 200, { ok: true });
+      } catch (e) {
+        return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    if (req.method === 'POST' && req.url === '/dap/breakpoints') {
+      const body = await readJson<{ file: string; lines: number[] }>(req);
+      const { dapSession } = await import('./modules/dap/host');
+      await dapSession.setBreakpoints(body.file, body.lines);
+      return send(res, 200, { ok: true });
+    }
+
+    if (req.method === 'POST' && req.url === '/dap/request') {
+      const body = await readJson<{ command: string; args?: unknown }>(req);
+      const { dapSession } = await import('./modules/dap/host');
+      try {
+        const result = await dapSession.request(body.command, body.args);
+        return send(res, 200, { result });
+      } catch (e) {
+        return send(res, 500, { error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    if (req.method === 'POST' && req.url === '/dap/events') {
+      const body = await readJson<{ since: number }>(req);
+      const { dapSession } = await import('./modules/dap/host');
+      return send(res, 200, { events: dapSession.pollEvents(body.since), active: dapSession.active });
+    }
+
+    if (req.method === 'POST' && req.url === '/dap/stop') {
+      const { dapSession } = await import('./modules/dap/host');
+      await dapSession.stop();
+      return send(res, 200, { ok: true });
+    }
+
     // ── Claude Code bridge ────────────────────────────────────────────
     if (req.method === 'GET' && req.url === '/agent/available') {
       const agent = await import('./modules/agent/runner');

@@ -16,7 +16,7 @@ export type ActivityPanel =
   | 'outline'
   | 'settings';
 
-export type BottomTab = 'terminal' | 'diff' | 'output' | 'problems' | 'subagents';
+export type BottomTab = 'terminal' | 'diff' | 'output' | 'problems' | 'debug' | 'subagents';
 
 export type EditorTabKind = 'file' | 'db-studio' | 'chat' | 'dev-server' | 'tool-library';
 
