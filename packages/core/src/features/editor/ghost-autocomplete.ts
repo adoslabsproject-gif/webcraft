@@ -23,8 +23,54 @@ RULES:
 
 const MAX_CONTEXT_BEFORE = 80;
 const MAX_CONTEXT_AFTER = 20;
-const DEBOUNCE_MS = 350;
+const DEBOUNCE_MS = 250;
 const MIN_CHARS = 2;
+
+/// Completions must be FAST and cheap — never the chat model (which can be
+/// a slow frontier model). Per-provider fast tier, chat model as fallback.
+const FAST_MODELS: Partial<Record<string, string>> = {
+  anthropic: 'claude-haiku-4-5-20251001',
+  openai: 'gpt-5-mini',
+  openrouter: 'anthropic/claude-haiku-4.5',
+  deepseek: 'deepseek-chat',
+  grok: 'grok-4-fast',
+  gemini: 'gemini-2.5-flash',
+};
+
+/// LRU cache keyed by cursor context. Prefix-serving: when the user TYPES
+/// the beginning of a cached suggestion, the remainder is served instantly
+/// with zero network — the single biggest perceived-latency win.
+const CACHE_MAX = 80;
+const cache = new Map<string, string>();
+/// Most recent suggestion + the context it was made for (prefix-serving).
+let lastSuggestion: { before: string; text: string } | null = null;
+
+function cacheKey(before: string, after: string): string {
+  return `${before.slice(-600)}⟂${after.slice(0, 200)}`;
+}
+
+function cachePut(key: string, value: string): void {
+  cache.delete(key);
+  cache.set(key, value);
+  if (cache.size > CACHE_MAX) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+}
+
+/// If `before` extends lastSuggestion's context by typing INTO the cached
+/// suggestion, return what remains of it.
+function prefixServe(before: string): string | null {
+  if (!lastSuggestion) return null;
+  if (!before.startsWith(lastSuggestion.before)) return null;
+  const typed = before.slice(lastSuggestion.before.length);
+  if (typed.length === 0) return lastSuggestion.text;
+  if (lastSuggestion.text.startsWith(typed)) {
+    const rest = lastSuggestion.text.slice(typed.length);
+    return rest.length > 0 ? rest : null;
+  }
+  return null;
+}
 
 let suggestionAbort: AbortController | null = null;
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -102,6 +148,20 @@ export function registerGhostAutocomplete(): monaco.IDisposable {
 
         if (before.trim().length < MIN_CHARS) return { items: [] };
 
+        // Zero-latency paths FIRST — before any debounce or network:
+        // 1. the user is typing into the previous suggestion → serve the rest
+        const served = prefixServe(before);
+        if (served) {
+          return { items: [ghostItem(served, position)] };
+        }
+        // 2. exact context seen before → cached completion
+        const key = cacheKey(before, after);
+        const hit = cache.get(key);
+        if (hit) {
+          lastSuggestion = { before, text: hit };
+          return { items: [ghostItem(hit, position)] };
+        }
+
         // Debounce — wait for a quiet moment before sending.
         await new Promise<void>((resolve) => {
           if (debounceTimer) clearTimeout(debounceTimer);
@@ -128,7 +188,7 @@ export function registerGhostAutocomplete(): monaco.IDisposable {
         let collected = '';
         try {
           await provider.stream({
-            model: settings.model,
+            model: FAST_MODELS[settings.activeProvider] ?? settings.model,
             system: SYSTEM,
             messages: [
               {
@@ -157,26 +217,30 @@ export function registerGhostAutocomplete(): monaco.IDisposable {
         const cleaned = cleanGhostText(collected);
         if (!cleaned) return { items: [] };
 
-        return {
-          items: [
-            {
-              insertText: cleaned,
-              range: new monaco.Range(
-                position.lineNumber,
-                position.column,
-                position.lineNumber,
-                position.column,
-              ),
-            },
-          ],
-          enableForwardStability: true,
-        };
+        cachePut(key, cleaned);
+        lastSuggestion = { before, text: cleaned };
+        return { items: [ghostItem(cleaned, position)], enableForwardStability: true };
       },
       disposeInlineCompletions() {
         /* no-op — items are plain text */
       },
     },
   );
+}
+
+function ghostItem(
+  text: string,
+  position: monaco.IPosition,
+): monaco.languages.InlineCompletion {
+  return {
+    insertText: text,
+    range: new monaco.Range(
+      position.lineNumber,
+      position.column,
+      position.lineNumber,
+      position.column,
+    ),
+  };
 }
 
 function cleanGhostText(raw: string): string {
