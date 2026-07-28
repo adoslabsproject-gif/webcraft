@@ -1,7 +1,8 @@
-import { GitBranch, GitFork, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import { Bot, GitBranch, GitFork, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useAppStore } from '../../store/app-store';
 import { alert, confirm, prompt } from '../dialog/dialog-store';
+import { runWorktreeAgent } from './worktree-agent';
 import { useWorktreeStore } from './worktree-store';
 
 /// Worktree panel — listed inside the Git tab below the file status list.
@@ -34,6 +35,17 @@ export function WorktreePanel() {
     if (useWorktreeStore.getState().error) {
       await alert('Worktree add failed', useWorktreeStore.getState().error ?? '');
     }
+  }
+
+  async function handleAgent(path: string, branch: string) {
+    const task = await prompt(`Run Claude Code agent on ${branch}`, {
+      message:
+        'Task for the agent. It runs in this worktree in parallel with your work — follow it in the Subagents tab.',
+      placeholder: 'Fix the failing tests in packages/core and commit',
+    });
+    if (!task) return;
+    void runWorktreeAgent(path, branch, task);
+    useAppStore.getState().setBottomTab('subagents');
   }
 
   async function handleRemove(path: string, isPrimary: boolean) {
@@ -112,6 +124,15 @@ export function WorktreePanel() {
                     {w.branch} · {w.head || '—'}
                     {w.isPrimary ? ' · primary' : ''}
                   </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleAgent(w.path, w.branch)}
+                  title="Run Claude Code agent in this worktree"
+                  aria-label="Run agent"
+                  className="opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <Bot className="h-3 w-3 text-indigo-300 hover:text-indigo-200" />
                 </button>
                 {!w.isPrimary ? (
                   <button
