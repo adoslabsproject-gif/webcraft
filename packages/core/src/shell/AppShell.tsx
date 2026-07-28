@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { ChatView } from '../features/chat/ChatView';
 import { initChatPersistence } from '../features/chat/chat-persistence';
+import { AgentPermissionDialog } from '../features/chat/AgentPermissionDialog';
 import { PermissionDialog } from '../features/chat/PermissionDialog';
 import { CommandPalette } from '../features/command-palette/CommandPalette';
 import { DialogHost } from '../features/dialog/DialogHost';
@@ -124,6 +125,9 @@ export function AppShell() {
         </ErrorBoundary>
         <ErrorBoundary label="PermissionDialog">
           <PermissionDialog />
+        </ErrorBoundary>
+        <ErrorBoundary label="AgentPermissionDialog">
+          <AgentPermissionDialog />
         </ErrorBoundary>
         <ErrorBoundary label="DialogHost">
           <DialogHost />

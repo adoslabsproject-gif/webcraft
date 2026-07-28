@@ -46,6 +46,20 @@ const TOOLS: McpTool[] = [
     },
   },
   {
+    name: 'approval_prompt',
+    description:
+      'Internal: WebCraft permission dialog. Called automatically by Claude Code (--permission-prompt-tool) when a tool needs user approval — never call it yourself.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        tool_name: { type: 'string', description: 'Tool requesting permission.' },
+        input: { type: 'object', description: 'Input the tool will run with.' },
+        tool_use_id: { type: 'string', description: 'Tool use id (optional).' },
+      },
+      required: ['tool_name', 'input'],
+    },
+  },
+  {
     name: 'semantic_search',
     description:
       "Search the project's code semantically via WebCraft's local embedding index (TF-IDF fallback).",
@@ -89,6 +103,33 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<st
     }
     const result = await sidecar('/db/tables', { connectionId });
     return JSON.stringify(result, null, 2);
+  }
+  if (name === 'approval_prompt') {
+    // Register the ask with the sidecar, then poll until the WebCraft UI
+    // answers (or the broker auto-denies on timeout). The CLI expects the
+    // decision JSON as the tool's text content.
+    const { id } = (await sidecar('/agent/permission/ask', {
+      toolName: String(args.tool_name ?? 'unknown'),
+      input: args.input ?? {},
+    })) as { id: string };
+    while (true) {
+      const { decision } = (await sidecar('/agent/permission/state', { id })) as {
+        decision: { behavior: 'allow' | 'deny'; message?: string; updatedInput?: unknown } | null;
+      };
+      if (decision) {
+        if (decision.behavior === 'allow') {
+          return JSON.stringify({
+            behavior: 'allow',
+            updatedInput: decision.updatedInput ?? args.input ?? {},
+          });
+        }
+        return JSON.stringify({
+          behavior: 'deny',
+          message: decision.message ?? 'Denied by the user in WebCraft.',
+        });
+      }
+      await new Promise((r) => setTimeout(r, 350));
+    }
   }
   if (name === 'semantic_search') {
     await sidecar('/rag/index', { root: String(args.root ?? '') });

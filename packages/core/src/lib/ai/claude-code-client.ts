@@ -62,16 +62,24 @@ export async function claudeCodeAvailable(): Promise<{
   }
 }
 
-function lastUserPrompt(messages: ChatMessage[]): string {
+function lastUserMessage(messages: ChatMessage[]): {
+  prompt: string;
+  images: { mediaType: string; data: string }[];
+} {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i]!;
     if (m.role !== 'user') continue;
     const texts = m.content
       .filter((b): b is Extract<ContentBlock, { type: 'text' }> => b.type === 'text')
       .map((b) => b.text);
-    if (texts.length > 0) return texts.join('\n\n');
+    const images = m.content
+      .filter((b): b is Extract<ContentBlock, { type: 'image' }> => b.type === 'image')
+      .map((b) => ({ mediaType: b.source.media_type, data: b.source.data }));
+    if (texts.length > 0 || images.length > 0) {
+      return { prompt: texts.join('\n\n'), images };
+    }
   }
-  return '';
+  return { prompt: '', images: [] };
 }
 
 /// Normalize a CC tool_result content (string | rich block array) to text.
@@ -103,8 +111,8 @@ export class ClaudeCodeProvider {
     const sessionKey = projectRoot ?? '';
     const settings = (await import('../../store/settings-store')).useSettingsStore.getState();
 
-    const prompt = lastUserPrompt(messages);
-    if (!prompt) {
+    const { prompt, images } = lastUserMessage(messages);
+    if (!prompt && images.length === 0) {
       const e = new Error('Empty prompt');
       callbacks.onError(e);
       throw e;
@@ -133,6 +141,7 @@ export class ClaudeCodeProvider {
           model: opts.model,
           permissionMode: settings.claudeCodePermissionMode,
           appendSystemPrompt: opts.system,
+          ...(images.length > 0 ? { images } : {}),
         }),
         ...(signal ? { signal } : {}),
       });
@@ -277,6 +286,12 @@ export class ClaudeCodeProvider {
       }
     };
 
+    // While the run streams, poll the sidecar's permission broker so the
+    // CLI's asks (--permission-prompt-tool) surface in the WebCraft dialog.
+    const permissions = (await import('../../features/chat/agent-permission-store'))
+      .useAgentPermissionStore;
+    permissions.getState().startPolling();
+
     try {
       while (true) {
         if (signal?.aborted) {
@@ -295,6 +310,8 @@ export class ClaudeCodeProvider {
       const err = e instanceof Error ? e : new Error(String(e));
       callbacks.onError(err);
       throw err;
+    } finally {
+      permissions.getState().stopPolling();
     }
 
     if (runError) {

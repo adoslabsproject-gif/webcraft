@@ -153,6 +153,40 @@ const server = createServer(async (req, res) => {
       return agent.runAgent(body, req, res);
     }
 
+    // Interactive permission broker (see modules/agent/permissions.ts).
+    if (req.method === 'POST' && req.url === '/agent/permission/ask') {
+      const perms = await import('./modules/agent/permissions');
+      const body = await readJson<{ toolName: string; input?: unknown }>(req);
+      return send(res, 200, { id: perms.createAsk(body.toolName, body.input ?? {}) });
+    }
+
+    if (req.method === 'POST' && req.url === '/agent/permission/pending') {
+      const perms = await import('./modules/agent/permissions');
+      return send(res, 200, { asks: perms.pendingAsks() });
+    }
+
+    if (req.method === 'POST' && req.url === '/agent/permission/answer') {
+      const perms = await import('./modules/agent/permissions');
+      const body = await readJson<{
+        id: string;
+        behavior: 'allow' | 'deny';
+        message?: string;
+        updatedInput?: unknown;
+      }>(req);
+      const ok = perms.answerAsk(body.id, {
+        behavior: body.behavior,
+        ...(body.message ? { message: body.message } : {}),
+        ...(body.updatedInput !== undefined ? { updatedInput: body.updatedInput } : {}),
+      });
+      return send(res, 200, { ok });
+    }
+
+    if (req.method === 'POST' && req.url === '/agent/permission/state') {
+      const perms = await import('./modules/agent/permissions');
+      const body = await readJson<{ id: string }>(req);
+      return send(res, 200, { decision: perms.askState(body.id) });
+    }
+
     if (req.method === 'POST' && req.url === '/rag/index') {
       const body = await readJson<{ root: string }>(req);
       const stats = await ragIndex.build(body.root);

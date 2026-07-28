@@ -80,6 +80,10 @@ export interface AgentRunRequest {
   model?: string;
   permissionMode?: string;
   appendSystemPrompt?: string;
+  /// Base64 image attachments (no data: prefix). When present, the run
+  /// switches to --input-format stream-json and the user message (text +
+  /// image blocks) is written to the CLI's stdin instead of the -p arg.
+  images?: { mediaType: string; data: string }[];
 }
 
 /// Spawn a headless run and stream the CLI's NDJSON events to `res` as
@@ -99,9 +103,10 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
     return;
   }
 
+  const hasImages = Array.isArray(body.images) && body.images.length > 0;
   const args = [
     '-p',
-    body.prompt,
+    ...(hasImages ? ['--input-format', 'stream-json'] : [body.prompt]),
     '--output-format',
     'stream-json',
     '--verbose',
@@ -132,6 +137,9 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
     const configPath = path.join(dir, 'mcp.json');
     writeFileSync(configPath, JSON.stringify(mcpConfig));
     args.push('--mcp-config', configPath, '--allowedTools', 'mcp__webcraft__*');
+    // Route the CLI's permission asks to the WebCraft dialog instead of
+    // failing silently in headless mode.
+    args.push('--permission-prompt-tool', 'mcp__webcraft__approval_prompt');
   }
 
   res.statusCode = 200;
@@ -144,8 +152,23 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
   const child = spawn(bin, args, {
     cwd: body.cwd || homedir(),
     env: { ...process.env, PATH: extendedPath() },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    stdio: ['pipe', 'pipe', 'pipe'],
   });
+
+  if (hasImages) {
+    const content: unknown[] = [
+      ...(body.prompt ? [{ type: 'text', text: body.prompt }] : []),
+      ...(body.images ?? []).map((im) => ({
+        type: 'image',
+        source: { type: 'base64', media_type: im.mediaType, data: im.data },
+      })),
+    ];
+    child.stdin.write(
+      `${JSON.stringify({ type: 'user', message: { role: 'user', content } })}\n`,
+    );
+  }
+  // Text-only runs take the prompt from argv; either way stdin is done.
+  child.stdin.end();
 
   const stderrTail: string[] = [];
   child.stdout.on('data', (chunk: Buffer) => {
@@ -162,6 +185,9 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
     res.end();
   });
   child.on('close', (code) => {
+    // A finished run can't answer permission asks anymore — deny leftovers
+    // so the renderer's dialog disappears.
+    void import('./permissions').then((p) => p.denyAllPending('run ended'));
     if (code !== 0) {
       res.write(
         `${JSON.stringify({
@@ -175,6 +201,9 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
 
   // Renderer aborted (Stop button / window closed) → kill the run.
   req.on('close', () => {
-    if (child.exitCode === null) child.kill('SIGTERM');
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+      void import('./permissions').then((p) => p.denyAllPending('run aborted'));
+    }
   });
 }
