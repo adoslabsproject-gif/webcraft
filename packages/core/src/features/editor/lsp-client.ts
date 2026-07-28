@@ -82,11 +82,18 @@ async function ensureSupportedLanguage(language: string): Promise<boolean> {
   }
 }
 
+/// IMPORTANT: capture everything from the model BEFORE any await —
+/// `ensureSupportedLanguage` is a network round-trip, and the model can be
+/// disposed mid-flight (tab closed, editor remount); touching it afterwards
+/// throws "Model is disposed!".
 async function didOpen(model: monaco.editor.ITextModel): Promise<void> {
+  if (model.isDisposed()) return;
   const language = model.getLanguageId();
-  if (!(await ensureSupportedLanguage(language))) return;
   const uri = pathToUri(model.uri.path);
   if (openedDocs.has(uri)) return;
+  const text = model.getValue();
+  if (!(await ensureSupportedLanguage(language))) return;
+  if (openedDocs.has(uri)) return; // raced by a concurrent didOpen
   openedDocs.add(uri);
   versions.set(uri, 1);
   await lspNotify(language, 'textDocument/didOpen', {
@@ -94,15 +101,17 @@ async function didOpen(model: monaco.editor.ITextModel): Promise<void> {
       uri,
       languageId: language,
       version: 1,
-      text: model.getValue(),
+      text,
     },
   });
 }
 
 async function didChange(model: monaco.editor.ITextModel): Promise<void> {
+  if (model.isDisposed()) return;
   const language = model.getLanguageId();
-  if (!(await ensureSupportedLanguage(language))) return;
   const uri = pathToUri(model.uri.path);
+  const text = model.getValue();
+  if (!(await ensureSupportedLanguage(language))) return;
   if (!openedDocs.has(uri)) {
     await didOpen(model);
     return;
@@ -111,7 +120,7 @@ async function didChange(model: monaco.editor.ITextModel): Promise<void> {
   versions.set(uri, version);
   await lspNotify(language, 'textDocument/didChange', {
     textDocument: { uri, version },
-    contentChanges: [{ text: model.getValue() }],
+    contentChanges: [{ text }],
   });
 }
 
@@ -236,6 +245,7 @@ export function registerLspProviders(): monaco.IDisposable[] {
           | Array<{ label: string }>
           | null;
         if (!res) return { suggestions: [] };
+        if (model.isDisposed()) return { suggestions: [] }; // tab closed mid-request
         const items = Array.isArray(res) ? res : (res.items ?? []);
         const word = model.getWordUntilPosition(position);
         const range = new monaco.Range(
@@ -469,6 +479,7 @@ async function pollDiagnostics(): Promise<void> {
         ...(d.code != null ? { code: String(d.code) } : {}),
       }));
       diagsCache.set(uri, markers);
+      if (model.isDisposed()) continue; // closed while the request was in flight
       monaco.editor.setModelMarkers(model, 'lsp', markers);
     } catch {
       /* sidecar down — keep whatever markers exist */
