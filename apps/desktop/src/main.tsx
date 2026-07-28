@@ -32,8 +32,23 @@ window.addEventListener('keydown', (e) => {
 /// (e.g. PGLite WASM init blocked by CSP, or fetch failure inside a
 /// useEffect). We catch them here and render a fixed banner so the user
 /// sees the real cause instead of "nothing clickable".
+///
+/// Benign rejections are filtered exactly like VS Code does: Monaco raises
+/// `Canceled` CancellationErrors whenever pending requests (hover,
+/// completion, LSP) are disposed by a model switch — opening/closing a file
+/// fires them by design and they carry zero signal for the user. Same for
+/// AbortError from user-cancelled fetches.
+function isBenignRejection(reason: unknown): boolean {
+  if (!(reason instanceof Error)) return false;
+  if (reason.name === 'Canceled' || reason.message === 'Canceled') return true;
+  if (reason.name === 'AbortError') return true;
+  return false;
+}
+
 function showUnhandledBanner(reason: unknown): void {
   const msg = reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason);
+  const stack = reason instanceof Error && reason.stack ? `\n\n${reason.stack}` : '';
+  const fullText = msg + stack;
   const id = 'webcraft-rejection-banner';
   let banner = document.getElementById(id);
   if (!banner) {
@@ -58,9 +73,24 @@ function showUnhandledBanner(reason: unknown): void {
     ].join(';');
     document.body.appendChild(banner);
   }
-  const stack = reason instanceof Error && reason.stack ? `\n\n${reason.stack}` : '';
-  banner.innerHTML = `<strong>⚠ Unhandled rejection</strong> — click to dismiss<pre style="white-space:pre-wrap;margin:6px 0 0;font:inherit">${escapeHtml(msg + stack)}</pre>`;
-  banner.onclick = () => banner?.remove();
+  banner.innerHTML =
+    `<strong>⚠ Unhandled rejection</strong>` +
+    `<button id="webcraft-rejection-copy" style="margin-left:10px;padding:1px 8px;font:inherit;color:#fecaca;background:transparent;border:1px solid rgba(248,113,113,0.5);border-radius:4px;cursor:pointer">Copy</button>` +
+    `<button id="webcraft-rejection-close" style="margin-left:6px;padding:1px 8px;font:inherit;color:#fecaca;background:transparent;border:1px solid rgba(248,113,113,0.5);border-radius:4px;cursor:pointer">Dismiss</button>` +
+    `<pre style="white-space:pre-wrap;margin:6px 0 0;font:inherit">${escapeHtml(fullText)}</pre>`;
+  document.getElementById('webcraft-rejection-copy')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    void navigator.clipboard.writeText(fullText);
+    const btn = ev.currentTarget as HTMLButtonElement;
+    btn.textContent = 'Copied ✓';
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+    }, 1500);
+  });
+  document.getElementById('webcraft-rejection-close')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    banner?.remove();
+  });
 }
 function escapeHtml(s: string): string {
   return s
@@ -70,6 +100,12 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;');
 }
 window.addEventListener('unhandledrejection', (e) => {
+  if (isBenignRejection(e.reason)) {
+    // Suppress the default console spam too — these fire on every tab
+    // switch and would bury real errors.
+    e.preventDefault();
+    return;
+  }
   showUnhandledBanner(e.reason);
 });
 
