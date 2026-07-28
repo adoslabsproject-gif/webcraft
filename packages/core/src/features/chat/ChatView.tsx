@@ -10,6 +10,7 @@ import {
   Settings as SettingsIcon,
   Sparkles,
   Trash2,
+  Undo2,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { CHAT_TAB_ID, useAppStore } from '../../store/app-store';
@@ -97,6 +98,7 @@ export function ChatView({ compact = false }: { compact?: boolean } = {}) {
           </span>
         </div>
         <div className="flex items-center gap-1">
+          <RollbackButton disabled={streaming} />
           <ChatHistoryMenu disabled={streaming} />
           <button
             type="button"
@@ -258,6 +260,48 @@ function StreamingBar({ status }: { status: ChatStatus }) {
           className={`h-full w-1/3 animate-[slide_1.4s_ease-in-out_infinite] bg-gradient-to-r from-transparent ${barFromTo} to-transparent`}
         />
       </div>
+    </div>
+  );
+}
+
+/// Rollback to the checkpoint taken before the last agent run — restores
+/// every file the run touched and deletes the files it created.
+function RollbackButton({ disabled }: { disabled: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function rollback() {
+    const { lastCheckpoint, rollbackTo } = await import('../../lib/ai/checkpoints');
+    const ckpt = lastCheckpoint();
+    const root = useAppStore.getState().projectRoot;
+    if (!ckpt || !root) {
+      setMsg('No checkpoint yet — one is taken before every agent run.');
+      setTimeout(() => setMsg(null), 3000);
+      return;
+    }
+    setBusy(true);
+    const result = await rollbackTo(root, ckpt);
+    setBusy(false);
+    setMsg(result.message);
+    setTimeout(() => setMsg(null), 5000);
+  }
+
+  return (
+    <div className="relative">
+      {msg ? (
+        <div className="absolute right-0 top-full z-50 mt-1 w-64 rounded border border-[var(--color-border)] bg-[var(--color-bg)] px-2 py-1.5 text-[10px] text-[var(--color-fg-muted)] shadow-xl">
+          {msg}
+        </div>
+      ) : null}
+      <button
+        type="button"
+        disabled={disabled || busy}
+        onClick={() => void rollback()}
+        title="Rollback: restore all files to the snapshot taken before the last agent run"
+        className="rounded p-1 text-[var(--color-fg-subtle)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-danger)] disabled:opacity-40"
+      >
+        <Undo2 className="h-3 w-3" />
+      </button>
     </div>
   );
 }

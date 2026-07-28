@@ -7,7 +7,7 @@
   "types": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/sidecar.mjs --packages=external --banner:js=\"import { createRequire as ___cr } from 'node:module'; const require = ___cr(import.meta.url);\"",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/sidecar.mjs --packages=external --banner:js=\"import { createRequire as ___cr } from 'node:module'; const require = ___cr(import.meta.url);\" && esbuild src/modules/agent/webcraft-mcp.ts --bundle --platform=node --target=node22 --format=esm --outfile=dist/webcraft-mcp.mjs",
     "test": "vitest run"
   },
   "dependencies": {

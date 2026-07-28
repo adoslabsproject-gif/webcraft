@@ -1,7 +1,9 @@
 import { execFile, spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { homedir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /// Claude Code bridge — runs the user's locally installed `claude` CLI in
 /// headless mode (`-p --output-format stream-json`) and pipes its NDJSON
@@ -110,6 +112,27 @@ export function runAgent(body: AgentRunRequest, req: IncomingMessage, res: Serve
   if (body.sessionId) args.push('--resume', body.sessionId);
   if (body.model && body.model !== 'default') args.push('--model', body.model);
   if (body.appendSystemPrompt) args.push('--append-system-prompt', body.appendSystemPrompt);
+
+  // WebCraft MCP server: gives Claude Code direct access to the IDE's DB
+  // Studio engines and the local semantic index. Registered only when the
+  // sidecar port is known and the built server script exists.
+  const sidecarPort = process.env.WEBCRAFT_SIDECAR_PORT;
+  const mcpScript = path.join(path.dirname(fileURLToPath(import.meta.url)), 'webcraft-mcp.mjs');
+  if (sidecarPort && existsSync(mcpScript)) {
+    const mcpConfig = {
+      mcpServers: {
+        webcraft: {
+          command: process.execPath,
+          args: [mcpScript],
+          env: { SIDECAR_PORT: sidecarPort },
+        },
+      },
+    };
+    const dir = mkdtempSync(path.join(tmpdir(), 'webcraft-mcp-'));
+    const configPath = path.join(dir, 'mcp.json');
+    writeFileSync(configPath, JSON.stringify(mcpConfig));
+    args.push('--mcp-config', configPath, '--allowedTools', 'mcp__webcraft__*');
+  }
 
   res.statusCode = 200;
   res.setHeader('content-type', 'application/x-ndjson');

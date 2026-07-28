@@ -234,6 +234,9 @@ server.listen(port, '127.0.0.1', () => {
   const bound = typeof addr === 'object' && addr ? addr.port : port;
   // Stdout marker captured by the Tauri spawner.
   process.stdout.write(`SIDECAR_READY ${bound}\n`);
+  // The agent runner reads this to hand the port to the WebCraft MCP
+  // server it registers with the Claude Code CLI.
+  process.env.WEBCRAFT_SIDECAR_PORT = String(bound);
   // Fire-and-forget MCP autoload from ~/.webcraft/mcp.json
   import('./modules/mcp/host')
     .then((m) => m.startAllConfigured())

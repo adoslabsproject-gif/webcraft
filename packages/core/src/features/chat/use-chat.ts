@@ -198,6 +198,13 @@ export async function sendChat(text: string, images?: PendingImage[]): Promise<v
       .filter(Boolean)
       .join('\n\n');
 
+    // Safety net: snapshot the worktree before any agentic run so the
+    // user can roll back everything this run touches with one click.
+    if (projectRoot && providerSupportsTools(activeProvider)) {
+      const { createCheckpoint } = await import('../../lib/ai/checkpoints');
+      await createCheckpoint(projectRoot, text.trim().slice(0, 60) || 'agent run');
+    }
+
     const abort = new AbortController();
     activeAbort = abort;
     try {
