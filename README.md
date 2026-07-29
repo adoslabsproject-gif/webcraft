@@ -29,10 +29,13 @@ Most AI coding agents live in the terminal. **WebCraft is a real desktop IDE** w
 <td width="50%" valign="top">
 
 **🖥️ A real IDE, not a sandbox toy**
-Monaco editor · LSP hover / go-to-def / diagnostics · command palette · integrated PTY terminal · git sidebar · live red/green diff stream.
+Monaco editor · LSP hover / go-to-def / references / rename / diagnostics · **DAP debugger** (breakpoints, call stack, variables — Node & TS) · Cursor-style ghost tab-completion · command palette · integrated PTY terminal · live red/green diff stream.
+
+**🌿 Full git, in the sidebar**
+Per-**hunk** staging · push / pull with ahead-behind counters · merge-conflict resolution (ours / theirs / abort) · AI commit messages · **worktrees with parallel Claude Code agents**, one per branch.
 
 **🗄️ Database studio, built in**
-Query, design and browse **SQLite · DuckDB · LibSQL · MongoDB · Redis** — studio UI is live, driver wiring lands next.
+Query and browse **SQLite · DuckDB · LibSQL · MongoDB · Redis** — real drivers shipped in the bundle, connect existing db files or servers.
 
 </td>
 <td width="50%" valign="top">
@@ -42,6 +45,9 @@ One-click dev-servers: **Node · Bun · Deno · Go · PHP · Python · Ruby** + 
 
 **🔓 No cloud lock-in**
 Provider-agnostic routing — **Claude Code (local, subscription) · Anthropic · OpenAI · OpenRouter · DeepSeek · Grok · Gemini**. API keys live in the **OS keychain** (Keychain / Credential Manager / Secret Service), never on disk in plaintext.
+
+**🤝 Claude Code as a first-class engine**
+Your `claude` CLI login (Pro/Max — no per-token billing) drives the chat: live tool transcript, **interactive permission dialogs in-app**, image attachments, per-run **checkpoints with one-click rollback**, conversation history per project, and WebCraft's DB/semantic-search exposed to it as MCP tools.
 
 </td>
 </tr>
@@ -53,7 +59,7 @@ It touches your **real filesystem, real language servers, real git repo**.
 
 ## ✦ Highlights
 
-> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **LSP** (via installed language servers) &nbsp;·&nbsp; 🔎 **`@codebase` search** &nbsp;·&nbsp; 🩺 **9-engine auto problem scan** &nbsp;·&nbsp; 🗄️ **DB Studio** (PGLite live, 4 engines in wiring) &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🎙️ **local whisper dictation** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🔌 **MCP**
+> 🧠 **60 agent tools** &nbsp;·&nbsp; ✍️ **LSP** (via installed language servers) &nbsp;·&nbsp; 🐞 **DAP debugger** &nbsp;·&nbsp; 👻 **ghost tab-completion** &nbsp;·&nbsp; 🔎 **`@codebase` search** (local multilingual embeddings) &nbsp;·&nbsp; 🩺 **9-engine auto problem scan** &nbsp;·&nbsp; 🌿 **per-hunk git staging** &nbsp;·&nbsp; 🤖 **worktree agents** &nbsp;·&nbsp; 🗄️ **DB Studio** &nbsp;·&nbsp; ▶️ **8 dev-server runtimes** &nbsp;·&nbsp; 🎙️ **local whisper dictation** &nbsp;·&nbsp; 🟢 **live diff stream** &nbsp;·&nbsp; 🔌 **MCP**
 
 ---
 
@@ -84,7 +90,7 @@ flowchart LR
 ## ✦ Features
 
 ### 🖥️ The IDE
-`Monaco editor` · `command palette` · `code lens` · `integrated terminal (PTY)` · `file tree` · `project-wide search` · `symbol outline` · `Problems panel` · `diff viewer` · `snippets` · `tool library`
+`Monaco editor` · `DAP debugger (js-debug)` · `ghost tab-completion (FIM)` · `command palette` · `code lens` · `integrated terminal (PTY)` · `file tree` · `project-wide search & replace` · `symbol outline` · `Problems panel` · `diff viewer` · `git panel (hunks · sync · conflicts · worktrees)` · `snippets` · `tool library` · `chat history per project`
 
 ### 🤖 The agent — 60 tools
 
@@ -172,7 +178,7 @@ pnpm build               # build all packages + desktop bundle
 
 ## ✦ Status
 
-<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 6 LLM providers, semantic search, DB Studio UI, dev-servers, diff stream, git, offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. Recently closed gaps: real DB drivers shipped in the bundle (sqlite/duckdb/libsql files + redis/mongo servers), OS-keychain secrets, Windows shell layer via Git Bash, bundled Node runtime (the app is fully self-contained). In progress: code signing/notarization, screenshots. Issues and PRs welcome.</samp>
+<samp><b>v0.1.0 — active development.</b> Core is in place: editor, agent + 60 tools, 7 LLM providers (incl. Claude Code via subscription), DAP debugger (Node/TS), ghost tab-completion, semantic search with local multilingual embeddings, DB Studio with real drivers, dev-servers, diff stream, full git panel (per-hunk staging, push/pull, conflicts, worktree agents), offline voice dictation (whisper-small via sherpa-onnx — the ~232MB model auto-downloads at first mic use). Installers for macOS, Windows and Linux ship on the <a href="https://github.com/adoslabsproject-gif/webcraft/releases">Releases page</a>. In progress: code signing/notarization, screenshots. Issues and PRs welcome.</samp>
 
 <div align="center">
 
